@@ -1035,25 +1035,12 @@ def pathway_enrichment_bubble_panel(
 def pathway_gene_membership_heatmap(
     z: np.ndarray, row_labels: list[str], col_labels: list[str]
 ) -> go.Figure:
-    """Pathway × gene grid; empty cells transparent; light gaps; legend for category colours."""
+    """Pathway × gene grid; empty cells transparent; Reactome/KEGG as a narrow left row spine."""
     if z.size == 0:
         return go.Figure()
-    # Discrete codes 0–4 must not use z/4 (3→0.75 landed in the KEGG band). Map to fixed slots.
-    _z_plot = {0: 0.04, 1: 0.24, 2: 0.44, 3: 0.64, 4: 0.84}
-    zn = np.vectorize(lambda v: _z_plot.get(int(v), 0.04))(z).astype(float)
-    transparent = "rgba(0,0,0,0)"
-    colorscale = [
-        [0.0, transparent],
-        [0.14, transparent],
-        [0.15, "#e69138"],
-        [0.33, "#e69138"],
-        [0.34, "#7eb6d9"],
-        [0.53, "#7eb6d9"],
-        [0.54, "#9ccc65"],
-        [0.73, "#9ccc65"],
-        [0.74, "#283593"],
-        [1.0, "#283593"],
-    ]
+
+    z_int = z.astype(int)
+    n_rows, n_cols = z.shape
 
     def _cell_hint(v: float) -> str:
         k = int(round(float(v)))
@@ -1065,29 +1052,115 @@ def pathway_gene_membership_heatmap(
             4: "KEGG pathway set",
         }.get(k, "")
 
-    z_int = z.astype(int)
-    text_grid = [[_cell_hint(z_int[i, j]) for j in range(z.shape[1])] for i in range(z.shape[0])]
+    # Discrete codes 0–4 must not use z/4 (3→0.75 landed in the KEGG band). Map to fixed slots.
+    _z_plot = {0: 0.04, 1: 0.24, 2: 0.44, 3: 0.64, 4: 0.84}
+    transparent = "rgba(0,0,0,0)"
+    colorscale_main = [
+        [0.0, transparent],
+        [0.14, transparent],
+        [0.15, "#e69138"],
+        [0.33, "#e69138"],
+        [0.34, "#7eb6d9"],
+        [0.53, "#7eb6d9"],
+        [0.54, "#9ccc65"],
+        [0.73, "#9ccc65"],
+        [0.74, "#283593"],
+        [1.0, "#283593"],
+    ]
+    _spine_plot = {3: 0.22, 4: 0.78}
+    colorscale_spine = [
+        [0.0, "#9ccc65"],
+        [0.42, "#9ccc65"],
+        [0.58, "#283593"],
+        [1.0, "#283593"],
+    ]
 
-    heat = go.Heatmap(
-        z=zn,
-        x=col_labels,
-        y=row_labels,
-        text=text_grid,
-        colorscale=colorscale,
-        zmin=0,
-        zmax=1,
-        showscale=False,
-        xgap=1,
-        ygap=1,
-        hovertemplate="%{y}<br>%{x}<br>%{text}<extra></extra>",
-    )
+    use_spine = n_cols >= 2 and str(col_labels[-1]) == "Library"
+    if use_spine:
+        lib_codes = z_int[:, -1]
+        z_main_int = z_int[:, :-1]
+        x_main = list(col_labels[:-1])
+        zn_main = np.vectorize(lambda v: _z_plot.get(int(v), 0.04))(z_main_int).astype(float)
+        text_main = [[_cell_hint(z_main_int[i, j]) for j in range(z_main_int.shape[1])] for i in range(n_rows)]
+        spine_zn = np.array(
+            [[_spine_plot.get(int(lib_codes[i]), 0.22)] for i in range(n_rows)],
+            dtype=float,
+        )
+        spine_text = [
+            ["Reactome" if int(lib_codes[i]) == 3 else "KEGG" if int(lib_codes[i]) == 4 else "Library"]
+            for i in range(n_rows)
+        ]
+        n_gene_cols = z_main_int.shape[1]
+    else:
+        zn_main = np.vectorize(lambda v: _z_plot.get(int(v), 0.04))(z_int).astype(float)
+        text_main = [[_cell_hint(z_int[i, j]) for j in range(n_cols)] for i in range(n_rows)]
+        x_main = list(col_labels)
+        n_gene_cols = n_cols
 
-    fig = go.Figure(data=[heat])
+    if use_spine:
+        fig = make_subplots(
+            rows=1,
+            cols=2,
+            column_widths=[0.034, 0.966],
+            horizontal_spacing=0.006,
+            shared_yaxes=True,
+        )
+        fig.add_trace(
+            go.Heatmap(
+                z=spine_zn,
+                x=[""],
+                y=row_labels,
+                text=spine_text,
+                colorscale=colorscale_spine,
+                zmin=0,
+                zmax=1,
+                showscale=False,
+                xgap=0,
+                ygap=1,
+                hovertemplate="%{y}<br><b>%{text}</b><extra></extra>",
+            ),
+            row=1,
+            col=1,
+        )
+        fig.add_trace(
+            go.Heatmap(
+                z=zn_main,
+                x=x_main,
+                y=row_labels,
+                text=text_main,
+                colorscale=colorscale_main,
+                zmin=0,
+                zmax=1,
+                showscale=False,
+                xgap=1,
+                ygap=1,
+                hovertemplate="%{y}<br>%{x}<br>%{text}<extra></extra>",
+            ),
+            row=1,
+            col=2,
+        )
+    else:
+        fig = go.Figure(
+            data=[
+                go.Heatmap(
+                    z=zn_main,
+                    x=x_main,
+                    y=row_labels,
+                    text=text_main,
+                    colorscale=colorscale_main,
+                    zmin=0,
+                    zmax=1,
+                    showscale=False,
+                    xgap=1,
+                    ygap=1,
+                    hovertemplate="%{y}<br>%{x}<br>%{text}<extra></extra>",
+                )
+            ]
+        )
 
-    n_rows, n_cols = z.shape
     cell_w = 10
     cell_h = 20
-    w = int(min(1000, max(460, n_cols * cell_w + 272)))
+    w = int(min(1000, max(460, n_gene_cols * cell_w + 300)))
     h = int(min(960, max(460, n_rows * cell_h + 128)))
     fig.update_layout(
         template="plotly_white",
@@ -1098,33 +1171,59 @@ def pathway_gene_membership_heatmap(
         margin=dict(l=4, r=168, t=52, b=108),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="#f4f6f9",
-        xaxis=dict(side="bottom", tickangle=-50, showgrid=False, zeroline=False),
-        yaxis=dict(
+    )
+
+    if use_spine:
+        fig.update_xaxes(showticklabels=False, showgrid=False, zeroline=False, row=1, col=1)
+        fig.update_xaxes(side="bottom", tickangle=-50, showgrid=False, zeroline=False, row=1, col=2)
+        fig.update_yaxes(
             tickfont=dict(size=9),
             showgrid=False,
             zeroline=False,
             autorange="reversed",
-        ),
-    )
-
-    legend_markers = [
-        ("Empty cell", "#f1f5f9", "square"),
-        ("Dead-end–linked gene", "#e69138", "square"),
-        ("Reprogramming–linked gene", "#7eb6d9", "square"),
-        ("Reactome (column tag)", "#9ccc65", "square"),
-        ("KEGG (column tag)", "#283593", "square"),
-    ]
-    for name, color, sym in legend_markers:
-        fig.add_trace(
-            go.Scatter(
-                x=[None],
-                y=[None],
-                mode="markers",
-                name=name,
-                marker=dict(size=11, color=color, symbol=sym, line=dict(width=1, color="rgba(0,0,0,0.25)")),
-                showlegend=True,
-            )
+            showticklabels=True,
+            row=1,
+            col=1,
         )
+        fig.update_yaxes(
+            showgrid=False,
+            zeroline=False,
+            autorange="reversed",
+            showticklabels=False,
+            row=1,
+            col=2,
+        )
+    else:
+        fig.update_layout(
+            xaxis=dict(side="bottom", tickangle=-50, showgrid=False, zeroline=False),
+            yaxis=dict(
+                tickfont=dict(size=9),
+                showgrid=False,
+                zeroline=False,
+                autorange="reversed",
+            ),
+        )
+
+    _legend_groups: list[tuple[str, str, str, str | None]] = [
+        ("Reactome", "#9ccc65", "pathway_library", "Library"),
+        ("KEGG", "#283593", "pathway_library", None),
+        ("Dead-end", "#e69138", "gene_contrast", "Contrast"),
+        ("Reprogramming", "#7eb6d9", "gene_contrast", None),
+    ]
+    for name, color, group, group_title in _legend_groups:
+        _mk = dict(size=11, color=color, symbol="square", line=dict(width=1, color="rgba(0,0,0,0.25)"))
+        _kw: dict[str, Any] = dict(
+            x=[None],
+            y=[None],
+            mode="markers",
+            name=name,
+            legendgroup=group,
+            marker=_mk,
+            showlegend=True,
+        )
+        if group_title:
+            _kw["legendgrouptitle"] = dict(text=group_title)
+        fig.add_trace(go.Scatter(**_kw))
 
     fig.update_layout(
         legend=dict(
