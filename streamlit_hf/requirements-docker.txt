@@ -1,0 +1,6 @@
+# Hugging Face / production image: precomputed cache only (no torch)
+streamlit>=1.40.0
+plotly>=5.22.0
+pandas>=2.0.0
+numpy>=1.24.0
+pyarrow>=14.0.0
