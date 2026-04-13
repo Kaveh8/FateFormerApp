@@ -5,9 +5,9 @@ The **root `README.md`** starts with the YAML card Hugging Face reads for the Sp
 ```yaml
 ---
 title: FateFormer Explorer
-short_description: Streamlit app to explore multimodal single-cell fate modeling (RNA, ATAC, metabolic flux, attention, and rankings).
+short_description: Streamlit: multimodal fate (RNA, ATAC, flux, attention).
 emoji: 🧬
-colorFrom: violet
+colorFrom: purple
 colorTo: indigo
 tags:
   - streamlit
