@@ -10,12 +10,12 @@ emoji: 🧬
 colorFrom: purple
 colorTo: indigo
 tags:
-  - streamlit
   - single-cell
   - multi-omics
   - genomics
   - atac-seq
   - rna-seq
+  - fluxomic
   - metabolic-modeling
   - deep-learning
   - biology
