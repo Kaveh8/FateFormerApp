@@ -1,4 +1,4 @@
 *.pkl filter=lfs diff=lfs merge=lfs -text
 *.pth filter=lfs diff=lfs merge=lfs -text
-data/datasets/*.csv filter=lfs diff=lfs merge=lfs -text
 *.parquet filter=lfs diff=lfs merge=lfs -text
+data/datasets/*.csv filter=lfs diff=lfs merge=lfs -text
