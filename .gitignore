@@ -3,8 +3,3 @@ __pycache__/
 .DS_Store
 .venv/
 venv/
-
-# Precomputed explorer artifacts (regenerate with scripts/precompute_streamlit_cache.py)
-streamlit_hf/cache/*.pkl
-streamlit_hf/cache/*.parquet
-streamlit_hf/cache/*.csv
