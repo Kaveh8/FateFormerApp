@@ -1,6 +1,6 @@
 ---
 title: FateFormer Explorer
-short_description: "Streamlit: multimodal fate (RNA, ATAC, flux, attention)."
+short_description: Multimodal fate from RNA, ATAC, and metabolic flux models.
 emoji: 🧬
 colorFrom: purple
 colorTo: indigo
