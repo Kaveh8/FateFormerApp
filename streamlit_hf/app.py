@@ -1,5 +1,5 @@
 """
-FateFormer: interactive analysis explorer.
+FateFormer Explorer: interactive analysis hub.
 Run from repository root: PYTHONPATH=. streamlit run streamlit_hf/app.py
 """
 

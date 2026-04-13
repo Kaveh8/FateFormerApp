@@ -1,7 +1,9 @@
 [theme]
 primaryColor = "#2563eb"
-backgroundColor = "#f8fafc"
-secondaryBackgroundColor = "#ffffff"
+# Match Plotly plotly_white paper (#fff) and CSS shell; avoids grey main area behind charts.
+backgroundColor = "#ffffff"
+# Sidebar / secondary surfaces: slightly tinted vs main canvas
+secondaryBackgroundColor = "#f1f5fb"
 textColor = "#0f172a"
 font = "sans-serif"
 

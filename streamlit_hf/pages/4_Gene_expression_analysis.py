@@ -33,7 +33,7 @@ if rna.empty and atac.empty:
     st.stop()
 
 st.caption(
-    "Pathway enrichment (Reactome / KEGG) and a pathway–gene map; chromVAR-style motif deviations and activity by "
+    "Pathway enrichment (Reactome / KEGG) and a pathway-gene map; chromVAR-style motif deviations and activity by "
     "fate; sortable gene and motif tables. Use **Feature Insights** for global shift and attention rankings across modalities."
 )
 
@@ -68,7 +68,7 @@ tab_path, tab_motif, tab_gene_tbl, tab_motif_tbl = st.tabs(
 
 with tab_path:
     st.caption(
-        "Over-representation of Reactome and KEGG pathways (Benjamini–Hochberg *q* < 0.05). "
+        "Over-representation of Reactome and KEGG pathways (Benjamini-Hochberg *q* < 0.05). "
         "The lower panel maps leading genes to pathways; empty grid positions are left clear."
     )
     raw = pathway_data.load_de_re_tsv()
@@ -86,7 +86,7 @@ with tab_path:
             st.plotly_chart(
                 plots.pathway_enrichment_bubble_panel(
                     mde,
-                    "Pathway enrichment — dead-end",
+                    "Pathway enrichment: dead-end",
                     show_colorbar=True,
                     layout_height=bubble_h,
                 ),
@@ -96,7 +96,7 @@ with tab_path:
             st.plotly_chart(
                 plots.pathway_enrichment_bubble_panel(
                     mre,
-                    "Pathway enrichment — reprogramming",
+                    "Pathway enrichment: reprogramming",
                     show_colorbar=True,
                     layout_height=bubble_h,
                 ),
@@ -104,7 +104,7 @@ with tab_path:
             )
         hm = pathway_data.build_merged_pathway_membership(de_all, re_all)
         if hm is None:
-            st.info("No pathway–gene matrix could be built from the current enrichment results.")
+            st.info("No pathway-gene matrix could be built from the current enrichment results.")
         else:
             z, ylabs, xlabs = hm
             st.plotly_chart(plots.pathway_gene_membership_heatmap(z, ylabs, xlabs), width="stretch")

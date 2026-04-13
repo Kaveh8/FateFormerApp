@@ -14,6 +14,8 @@ from streamlit_hf.lib.reactions import normalize_reaction_key
 
 # Matches Streamlit theme primary + slate text; used across Plotly layouts.
 PLOT_FONT = dict(family="Inter, system-ui, sans-serif", size=12)
+# Same as app / plotly_white paper so figures are not tinted vs the page.
+PAGE_BG = "#ffffff"
 
 PALETTE = (
     "#2563eb",
@@ -148,15 +150,17 @@ def latent_scatter(
     else:
         color_arg = color_col
 
+    # Plotly Express turns title="" into a visible "undefined" title in some versions; omit when empty.
     common = dict(
         x="umap_x",
         y="umap_y",
         hover_data=hover_data,
         labels=labels_map,
-        title=title,
         width=width,
         height=height,
     )
+    if title:
+        common["title"] = title
     if continuous:
         fig = px.scatter(
             d,
@@ -174,15 +178,20 @@ def latent_scatter(
     fig.update_traces(
         marker=dict(size=marker_size, opacity=marker_opacity, line=dict(width=0.25, color="rgba(255,255,255,0.4)"))
     )
+    top_margin = 56 if title else 28
     fig.update_layout(
         template="plotly_white",
         font=PLOT_FONT,
         title_font_size=16,
-        margin=dict(l=28, r=20, t=56, b=28),
+        margin=dict(l=28, r=20, t=top_margin, b=28),
         legend_title_text="",
         xaxis_title="",
         yaxis_title="",
+        paper_bgcolor=PAGE_BG,
+        plot_bgcolor=PAGE_BG,
     )
+    if not title:
+        fig.update_layout(title=None)
     fig.update_xaxes(showticklabels=False, showgrid=True, gridcolor="rgba(0,0,0,0.06)", zeroline=False)
     fig.update_yaxes(showticklabels=False, showgrid=True, gridcolor="rgba(0,0,0,0.06)", zeroline=False)
     return fig
@@ -262,7 +271,7 @@ def _truncate_label(s: str, max_len: int = 36) -> str:
 def joint_shift_attention_top_features(df_mod, modality: str, top_n: int):
     """
     Top features by mean_rank (lowest = strongest joint shift+attention ranking).
-    Shift and attention importances are min–max scaled within this top-N slice for side-by-side comparison.
+    Shift and attention importances are min-max scaled within this top-N slice for side-by-side comparison.
     """
     need = ("mean_rank", "importance_shift", "importance_att", "feature")
     if not all(c in df_mod.columns for c in need):
@@ -512,10 +521,20 @@ def attention_cohort_view(
     return fig
 
 
-def global_rank_triple_panel(df_features, top_n: int = 20, top_n_pie: int = 100):
+def global_rank_triple_panel(
+    df_features,
+    top_n: int = 20,
+    top_n_pie: int = 100,
+    *,
+    chart_outline: bool = True,
+    modality_mix_hole: float = 0.0,
+):
     """
-    Global top-N by latent-shift and by attention (min–max scaled), plus pie of modality mix
+    Global top-N by latent-shift and by attention (min-max scaled), plus pie or donut of modality mix
     among the top `top_n_pie` features by mean rank.
+
+    Set ``chart_outline=False`` for a flatter look (e.g. home page); Feature Insights keeps outlines by default.
+    Set ``modality_mix_hole`` in (0, 1), e.g. ``0.66``, for a donut instead of a full pie (e.g. home page).
     """
     d = df_features.copy()
     for col in ("importance_shift", "importance_att"):
@@ -542,13 +561,16 @@ def global_rank_triple_panel(df_features, top_n: int = 20, top_n_pie: int = 100)
         horizontal_spacing=0.06,
     )
 
+    bar_outline = dict(color="#1e293b", width=1.2) if chart_outline else dict(width=0)
+    pie_line = dict(color="#1e293b", width=1.2) if chart_outline else dict(width=0)
+    leg_line = dict(width=1.2, color="#1e293b") if chart_outline else dict(width=0)
     fig.add_trace(
         go.Bar(
             x=shift_top["importance_shift_norm"],
             y=shift_top["feature"],
             orientation="h",
             marker_color=[MODALITY_COLOR.get(m, "#64748b") for m in shift_top["modality"]],
-            marker_line=dict(color="rgba(15,23,42,0.12)", width=1),
+            marker_line=bar_outline,
             showlegend=False,
             hovertemplate="%{y}<br>scaled shift: %{x:.3f}<extra></extra>",
         ),
@@ -561,7 +583,7 @@ def global_rank_triple_panel(df_features, top_n: int = 20, top_n_pie: int = 100)
             y=att_top["feature"],
             orientation="h",
             marker_color=[MODALITY_COLOR.get(m, "#64748b") for m in att_top["modality"]],
-            marker_line=dict(color="rgba(15,23,42,0.12)", width=1),
+            marker_line=bar_outline,
             showlegend=False,
             hovertemplate="%{y}<br>scaled attention: %{x:.3f}<extra></extra>",
         ),
@@ -575,22 +597,46 @@ def global_rank_triple_panel(df_features, top_n: int = 20, top_n_pie: int = 100)
     if sum(pie_vals) == 0:
         pie_vals = [1, 1, 1]
 
+    _hole = float(modality_mix_hole) if modality_mix_hole and modality_mix_hole > 0 else 0.0
+    # Narrow third subplot: "auto" avoids clipped outside labels on donuts.
+    _pie_textpos = "auto"
     fig.add_trace(
         go.Pie(
             labels=pie_labels,
             values=pie_vals,
             marker=dict(
                 colors=[MODALITY_PIE_COLOR.get(l, "#64748b") for l in pie_labels],
-                line=dict(color="#1e293b", width=1.2),
+                line=pie_line,
             ),
             textinfo="label+percent",
             textfont_size=12,
-            hole=0.0,
+            textposition=_pie_textpos,
+            hole=_hole,
             showlegend=False,
         ),
         row=1,
         col=3,
     )
+
+    # Modality legend (bar colours + pie segment colours): invisible markers in first subplot only.
+    for _name, _col in (
+        ("RNA (transcriptome)", MODALITY_PIE_COLOR["RNA"]),
+        ("ATAC (chromatin)", MODALITY_PIE_COLOR["ATAC"]),
+        ("Flux (metabolism)", MODALITY_PIE_COLOR["Flux"]),
+    ):
+        fig.add_trace(
+            go.Scatter(
+                x=[None],
+                y=[None],
+                mode="markers",
+                marker=dict(size=12, color=_col, symbol="square", line=leg_line),
+                name=_name,
+                showlegend=True,
+                hoverinfo="skip",
+            ),
+            row=1,
+            col=1,
+        )
 
     fig.update_xaxes(title_text="Min-max scaled shift", row=1, col=1)
     fig.update_xaxes(title_text="Min-max scaled attention", row=1, col=2)
@@ -603,9 +649,22 @@ def global_rank_triple_panel(df_features, top_n: int = 20, top_n_pie: int = 100)
         font=PLOT_FONT,
         height=h,
         width=min(1280, 400 + top_n * 14),
-        margin=dict(l=40, r=40, t=80, b=40),
+        margin=dict(l=40, r=40, t=80, b=108),
+        paper_bgcolor=PAGE_BG,
+        plot_bgcolor=PAGE_BG,
         title_text="Global feature ranking (all modalities)",
         title_x=0.5,
+        legend=dict(
+            title=dict(text="Modality colour key", font=dict(size=11, family=PLOT_FONT["family"])),
+            orientation="h",
+            yanchor="top",
+            y=-0.14,
+            xanchor="center",
+            x=0.5,
+            font=dict(size=11, family=PLOT_FONT["family"]),
+            traceorder="normal",
+            itemsizing="constant",
+        ),
     )
     return fig
 
@@ -900,7 +959,7 @@ def pathway_enrichment_bubble_panel(
             title=dict(text=title, x=0.5, xanchor="center"),
             annotations=[
                 dict(
-                    text="No significant pathways (Benjamini–Hochberg q < 0.05)",
+                    text="No significant pathways (Benjamini-Hochberg q < 0.05)",
                     xref="paper",
                     yref="paper",
                     x=0.5,
@@ -1165,12 +1224,12 @@ def pathway_gene_membership_heatmap(
     fig.update_layout(
         template="plotly_white",
         font=PLOT_FONT,
-        title=dict(text="Pathway–gene membership", x=0.5, xanchor="center"),
+        title=dict(text="Pathway-gene membership", x=0.5, xanchor="center"),
         height=h,
         width=w,
         margin=dict(l=4, r=168, t=52, b=108),
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="#f4f6f9",
+        paper_bgcolor=PAGE_BG,
+        plot_bgcolor=PAGE_BG,
     )
 
     if use_spine:
