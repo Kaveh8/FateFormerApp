@@ -28,6 +28,24 @@ _VALIDATION_ROC_AUC = 0.93
 
 _UMAP_HOME_TITLE = "Validation latent space (UMAP)"
 
+_UMAP_HELP_MD = """
+**What this is:** A 2‑D **UMAP** of validation cells in the model’s **shared latent space** (RNA + chromatin + flux combined). Nearby points have **similar multimodal profiles**.
+
+**How to read it:** Axes are **unitless**—UMAP preserves *local* neighbourhoods, not real physical scales. **Colour** is the **experimental fate** from CellTag‑Multi labels. **Hover** a point for cell-level details.
+
+**Takeaway:** See whether biological fates form separable groups in the representation the model actually uses.
+"""
+
+_GLOBAL_RANK_HELP_MD = """
+**What this is:** Three linked summaries of **which features** (genes, peaks, or reactions) the analyses rank highest **globally** across modalities.
+
+**Panels:** **Left / middle** = top features by **latent shift** importance and by **attention** (bars are **min‑max scaled within that panel** so the longest bar is 1). **Right** = **modality mix** (RNA vs ATAC vs Flux) among a pool of **strongest** features by **mean rank** (lower mean rank = higher joint priority).
+
+**How to read it:** Longer bars mean stronger measured influence for that metric. **Colours** mark **modality**. The donut answers: “Among the most important features in this pool, which data type dominates?”.
+
+**Takeaway:** Connects **mechanistic probes** (shift) with **what the transformer emphasises** (attention) in one glance.
+"""
+
 _APP_SUBTITLE = (
     "A multimodal transformer-based model that jointly encodes RNA, chromatin accessibility, and metabolic flux "
     "to predict single-cell fate, with interpretable attention and latent-shift rankings across omics layers."
@@ -115,18 +133,22 @@ with c1:
 with c2:
     st.markdown(_NAV_SLOT.format(2), unsafe_allow_html=True)
     with st.container(border=True):
-        st.page_link("pages/2_Feature_insights.py", label="Feature Insights", icon=":material/analytics:")
+        st.page_link(
+            "pages/feature_insights/1_Global_overview.py",
+            label="Feature Insights",
+            icon=":material/analytics:",
+        )
         st.caption("Shift probes, attention rollout, cohort views, and full multimodal tables.")
 with c3:
     st.markdown(_NAV_SLOT.format(3), unsafe_allow_html=True)
     with st.container(border=True):
-        st.page_link("pages/3_Flux_analysis.py", label="Flux Analysis", icon=":material/account_tree:")
+        st.page_link("pages/flux_analysis/5_Interactive_map.py", label="Flux Analysis", icon=":material/account_tree:")
         st.caption("Reaction pathways, differential flux, rankings, and model metadata.")
 with c4:
     st.markdown(_NAV_SLOT.format(4), unsafe_allow_html=True)
     with st.container(border=True):
         st.page_link(
-            "pages/4_Gene_expression_analysis.py",
+            "pages/gene_expression/1_Pathway_enrichment.py",
             label="Gene Expression & TF Activity",
             icon=":material/genetics:",
         )
@@ -142,7 +164,11 @@ if bundle is not None and df_features is not None:
     with row1_story:
         st.markdown(_BIOLOGY_CONTEXT_MARKDOWN)
     with row1_umap:
-        st.caption("Each point is a cell · colours = experimental fate labels · validation split")
+        ui.plot_caption_with_help(
+            "Each point is a cell · colours = experimental fate labels · validation split",
+            _UMAP_HELP_MD,
+            key="home_umap_help",
+        )
         fig_u = plots.latent_scatter(
             plot_umap,
             "label",
@@ -159,7 +185,11 @@ if bundle is not None and df_features is not None:
             config={"displayModeBar": True, "displaylogo": False, "modeBarButtonsToRemove": ["lasso2d", "select2d"]},
         )
 
-    st.caption("Global shift and attention · top features by importance (min-max scaled within each bar chart) · modality mix as donut (top by mean rank).")
+    ui.plot_caption_with_help(
+        "Global shift and attention · top features (min-max scaled within each bar chart) · modality mix donut (top by mean rank).",
+        _GLOBAL_RANK_HELP_MD,
+        key="home_global_rank_help",
+    )
     fig_g = plots.global_rank_triple_panel(
         df_features,
         top_n=_HOME_RANK_TOP_N,
@@ -181,7 +211,11 @@ elif bundle is not None:
     with u_story:
         st.markdown(_BIOLOGY_CONTEXT_MARKDOWN)
     with u_map:
-        st.caption("Feature ranking cache unavailable · UMAP only")
+        ui.plot_caption_with_help(
+            "Feature ranking cache unavailable · UMAP only",
+            _UMAP_HELP_MD,
+            key="home_umap_only_help",
+        )
         fig_u = plots.latent_scatter(
             plot_umap,
             "label",
@@ -194,7 +228,11 @@ elif bundle is not None:
         fig_u.update_layout(margin=dict(l=24, r=12, t=52, b=24), title_font_size=15)
         st.plotly_chart(fig_u, width="stretch", config={"displayModeBar": True, "displaylogo": False})
 elif df_features is not None:
-    st.caption("Feature ranking overview · latent UMAP unavailable")
+    ui.plot_caption_with_help(
+        "Feature ranking overview · latent UMAP unavailable",
+        _GLOBAL_RANK_HELP_MD,
+        key="home_global_only_help",
+    )
     fig_g = plots.global_rank_triple_panel(
         df_features,
         top_n=_HOME_RANK_TOP_N,

@@ -19,6 +19,14 @@ from streamlit_hf.lib import ui
 
 ui.inject_app_styles()
 
+_UMAP_EXPLORER_HELP = """
+**What this is:** The same kind of **2‑D UMAP** as on Home, but you choose **what to colour** (fate label, model prediction, fold, modalities present, etc.) and can **filter** cells.
+
+**How to read it:** Axes are **unitless** UMAP coordinates. **Colour** follows your **Colour by** menu. **Hover** points for values; **click‑drag a box** on the plot to **select** cells and inspect them in the table below.
+
+**Takeaway:** Check whether mis‑predictions or batch effects line up in particular regions of latent space.
+"""
+
 st.title("Single-Cell Explorer")
 st.caption("Explore validation cells in 2-D UMAP space: colour and filter to compare fates, predictions, and modalities.")
 
@@ -99,6 +107,11 @@ if plot_df.empty:
     st.stop()
 
 with right:
+    ui.plot_caption_with_help(
+        "Hover points for details · drag on the plot to select cells",
+        _UMAP_EXPLORER_HELP,
+        key="sc_umap_help",
+    )
     fig = plots.latent_scatter(
         plot_df,
         color_opt,

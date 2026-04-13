@@ -69,6 +69,31 @@ section[data-testid="stMain"] h1 {
     )
 
 
+def plot_help_popover(help_md: str, *, key: str) -> None:
+    """Small help control next to a figure; opens Markdown guidance for biologists."""
+    with st.popover(
+        " ",
+        help="What does this figure show?",
+        icon=":material/help_outline:",
+        type="tertiary",
+        width="content",
+        key=key,
+    ):
+        st.markdown(help_md)
+
+
+def plot_caption_with_help(caption: str, help_md: str, *, key: str) -> None:
+    """One-line caption with an aligned help popover (typical layout above a chart)."""
+    try:
+        cap_col, help_col = st.columns([0.9, 0.1], gap="small", vertical_alignment="center")
+    except TypeError:
+        cap_col, help_col = st.columns([0.9, 0.1], gap="small")
+    with cap_col:
+        st.caption(caption)
+    with help_col:
+        plot_help_popover(help_md, key=key)
+
+
 def inject_home_landing_styles() -> None:
     """Hero, nav cards, and section labels (home page only)."""
     st.markdown(
