@@ -30,7 +30,7 @@ app_port: 7860
 ## Before first deploy
 
 1. Run locally: `python scripts/precompute_streamlit_cache.py` (requires GPU/CPU time for attention).
-2. Commit **`streamlit_hf/cache/`** contents (`latent_umap.pkl`, `attention_summary.pkl`, `attention_feature_ranks.pkl`, `df_features.parquet`, and optionally `samples.parquet` if you use it elsewhere) or attach via **Git LFS** if files are large. These paths are listed in `.gitignore`; use `git add -f streamlit_hf/cache/*` when you want them in the remote.
+2. Commit **`streamlit_hf/cache/`** contents (`latent_umap.pkl`, `attention_summary.pkl`, `attention_feature_ranks.pkl`, `df_features.parquet`, and optionally `samples.parquet` if you use it elsewhere). **Hugging Face rejects raw Parquet in git:** `*.parquet` is tracked with **Git LFS** via root `.gitattributes` (same idea as `*.pkl`). If an old commit still has Parquet as a normal blob, run `git lfs migrate import --include="*.parquet" --everything` then force-push. These paths may be in `.gitignore`; use `git add -f streamlit_hf/cache/*` when you want them in the remote.
 3. Keep **`ckp/`** model weights available only if you run precompute in CI; the slim Docker image does **not** include PyTorch and expects precomputed caches.
 
 The repository **`Dockerfile`** at the root builds the Space.
