@@ -19,41 +19,12 @@ sdk: docker
 app_port: 7860
 ---
 
-# FateFormerApp
+# FateFormer Explorer
 
-## Interactive explorer (Streamlit)
+**FateFormer** is a multimodal model (RNA expression, chromatin accessibility, metabolic flux) trained to predict single-cell fate during reprogramming. Labels come from **CellTag-Multi** lineage tracing on a MEF → induced endoderm progenitor (iEP) system.
 
-From the repo root, with the project virtualenv activated:
+This repository is the **Streamlit app** that explores the model and data: validation latent space (UMAP), global feature importance (latent shift and attention), per-cell views, and flux-focused analysis. The UI reads precomputed artifacts under `streamlit_hf/cache/`.
 
-```bash
-PYTHONPATH=. streamlit run streamlit_hf/app.py
-```
+**Live app:** [https://huggingface.co/spaces/Angione-Lab/FateFormerExplorer](https://huggingface.co/spaces/Angione-Lab/FateFormerExplorer)
 
-The default local port is **8501**. The **Dockerfile** (and Hugging Face Space card above) use **7860** to match Spaces.
-
-### Updating results after new experiments (no code changes)
-
-The app reads **fixed paths**. Replace files under `streamlit_hf/cache/` using the **same filenames**; then **restart Streamlit** (or do a hard refresh) so the new data loads.
-
-| File | What it drives |
-|------|----------------|
-| `streamlit_hf/cache/latent_umap.pkl` | Single-Cell Explorer (UMAP) |
-| `streamlit_hf/cache/df_features.parquet` | Feature insights + Flux analysis |
-| `streamlit_hf/cache/attention_summary.pkl` | “Attention vs prediction” in Feature insights |
-| `streamlit_hf/cache/attention_feature_ranks.pkl` | Optional; attention lists also live inside `attention_summary.pkl` |
-
-You can also keep `analysis/df_features.csv` in sync for your own workflows; the UI **prefers** `streamlit_hf/cache/df_features.parquet` when present.
-
-### Regenerating caches from this repo
-
-If you updated checkpoints, fold splits, shift pickles, or deg tables **inside this project**, run:
-
-```bash
-python scripts/precompute_streamlit_cache.py
-```
-
-That script expects (among others) `ckp/*.pth`, `objects/fold_results_multi.pkl`, `objects/mutlimodal_dataset.pkl`, `objects/fi_shift_*.pkl`, and `objects/degs.pkl`. Point those inputs at your new experiment outputs **before** running the script, or copy your new pickles/CSVs into `streamlit_hf/cache/` manually as in the table above.
-
-### Docker / Hugging Face
-
-See `streamlit_hf/HUGGINGFACE.md` and the root `Dockerfile`.
+**Run, Docker, Hugging Face Spaces, and cache regeneration:** see [`streamlit_hf/README.md`](streamlit_hf/README.md) and [`streamlit_hf/HUGGINGFACE.md`](streamlit_hf/HUGGINGFACE.md).
