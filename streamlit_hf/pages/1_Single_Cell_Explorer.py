@@ -19,16 +19,24 @@ from streamlit_hf.lib import ui
 
 ui.inject_app_styles()
 
-_UMAP_EXPLORER_HELP = """
-**What this is:** The same kind of **2‑D UMAP** as on Home, but you choose **what to colour** (fate label, model prediction, fold, modalities present, etc.) and can **filter** cells.
+_CELLTAG_MULTI_ARTICLE_URL = "https://www.nature.com/articles/s41587-023-01931-4"
 
-**How to read it:** Axes are **unitless** UMAP coordinates. **Colour** follows your **Colour by** menu. **Hover** points for values; **click‑drag a box** on the plot to **select** cells and inspect them in the table below.
+_UMAP_EXPLORER_TITLE = "Validation latent space (UMAP)"
+_UMAP_EXPLORER_SUBTITLE = "Hover points for details · drag on the plot to select cells"
 
-**Takeaway:** Check whether mis‑predictions or batch effects line up in particular regions of latent space.
+_UMAP_EXPLORER_HELP = f"""
+**What this is:** The same **2‑D UMAP** as on **Home**: validation **single cells** in **FateFormer**’s **latent space** (**context vector token representation**), summarised across **5-fold cross-validation** (**2,110** cells before filters). Here you **choose what to colour** and **filter** the cloud.
+
+**How to read it:** Each point is one cell. **Colour** comes from **Colour by**: e.g. [**CellTag-Multi**]({_CELLTAG_MULTI_ARTICLE_URL}) **label**, **predicted fate**, **prediction correct / wrong**, **CV fold**, **batch**, which **modalities** are present, or **dominant fate %**. **Axes are unitless** (UMAP preserves *local* neighbourhoods only). **Hover** a point for per-cell fields.
+
+**Using this page:** Use **Filters** to keep modality combinations, restrict **prediction outcome** (all / correct only / wrong only), choose **CV folds**, and set a **dominant fate %** range. In the plot **toolbar** (top right), pick **Box select** or **Lasso select**, then **drag** on the canvas; the app **reruns** and the **Selected points** table fills with those rows. To inspect **one** cell without a selection, scroll to **Inspect by dataset index**.
 """
 
 st.title("Single-Cell Explorer")
-st.caption("Explore validation cells in 2-D UMAP space: colour and filter to compare fates, predictions, and modalities.")
+st.caption(
+    "This page is an interactive **validation UMAP** in FateFormer latent space: you choose how points are **coloured**, "
+    "apply **filters**, and can **select** cells on the plot to inspect them in a table or by index."
+)
 
 bundle = io.load_latent_bundle()
 if bundle is None:
@@ -107,21 +115,31 @@ if plot_df.empty:
     st.stop()
 
 with right:
-    ui.plot_caption_with_help(
-        "Hover points for details · drag on the plot to select cells",
-        _UMAP_EXPLORER_HELP,
-        key="sc_umap_help",
-    )
-    fig = plots.latent_scatter(
-        plot_df,
-        color_opt,
-        title="Validation latent space (UMAP)",
-        width=900,
-        height=560,
-        marker_size=5.8,
-        marker_opacity=0.74,
-    )
-    st.plotly_chart(fig, width="stretch", on_select="rerun", key="latent_pick")
+    try:
+        _sc_umap_plot_col, _sc_umap_help_col = st.columns([0.94, 0.06], gap="small", vertical_alignment="top")
+    except TypeError:
+        _sc_umap_plot_col, _sc_umap_help_col = st.columns([0.94, 0.06], gap="small")
+    with _sc_umap_plot_col:
+        fig = plots.latent_scatter(
+            plot_df,
+            color_opt,
+            title=_UMAP_EXPLORER_TITLE,
+            width=900,
+            height=560,
+            marker_size=5.8,
+            marker_opacity=0.74,
+            subtitle=_UMAP_EXPLORER_SUBTITLE,
+        )
+        fig.update_layout(margin=dict(l=20, r=12, t=92, b=20), title_font_size=15)
+        st.plotly_chart(
+            fig,
+            width="stretch",
+            on_select="rerun",
+            key="latent_pick",
+            config={"displayModeBar": True, "displaylogo": False},
+        )
+    with _sc_umap_help_col:
+        ui.plot_help_popover(_UMAP_EXPLORER_HELP, key="sc_umap_help")
 
 st.subheader("Selected points")
 state = st.session_state.get("latent_pick")
@@ -155,12 +173,17 @@ else:
     )
 
 st.subheader("Inspect by dataset index")
+_didx_min = int(df["dataset_idx"].min())
+_didx_max = int(df["dataset_idx"].max())
 pick = st.number_input(
     "Dataset index",
-    min_value=int(df["dataset_idx"].min()),
-    max_value=int(df["dataset_idx"].max()),
+    min_value=_didx_min,
+    max_value=_didx_max,
     value=int(df["dataset_idx"].iloc[0]),
-    help="Index `ind` in your sample table; aligns one validation cell to this row.",
+    help=(
+        f"The table below is a one-cell summary for the validation set: choose an index from {_didx_min} to {_didx_max} "
+        "to see fate labels, model prediction, available modalities, and related fields for that cell."
+    ),
 )
 row = df[df["dataset_idx"] == pick]
 if not row.empty:

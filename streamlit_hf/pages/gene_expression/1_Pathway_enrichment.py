@@ -1,4 +1,4 @@
-"""Gene expression — Reactome / KEGG pathway enrichment."""
+"""Gene expression: Reactome / KEGG pathway enrichment."""
 
 from __future__ import annotations
 
@@ -18,34 +18,18 @@ from streamlit_hf.lib import ui
 
 ui.inject_app_styles()
 
-_HELP_PATH_BUBBLE_DE = """
-**What this is:** **Pathway over‑representation** among genes linked to **dead‑end** cells (Reactome + KEGG merged view). **Significance** is **Benjamini–Hochberg FDR** (*q* < 0.05).
+_HELP_PATHWAY_ENRICHMENT = """
+**Overview:** **Gene pathway enrichment**: Reactome and KEGG **over-representation** from fate-split **RNA marker** lists, then a **pathway × gene** heatmap of the leading hits.
 
-**How to read it:** Each **bubble** is a pathway; **position** reflects effect size / enrichment strength; **size** often tracks **gene count** or **significance** (see axis labels and hover). Compare to the **reprogramming** panel for fate‑specific patterns.
+**Bubble panels (dead-end vs reprogramming):** **Leading genes** are **grouped by fate** (dead-end vs reprogramming); each panel runs enrichment on that gene set. **Horizontal axis** = **gene ratio** (enrichment table). **Circles** = **Reactome** pathways; **squares** = **KEGG** pathways. **Vertical** position orders pathways; **size** reflects **gene count**; **colour** = **−log₁₀** Benjamini *q* (*q* < 0.05). **Hover** for pathway name, library, count, and *q*. **Compare** left and right panels for cohort-specific pathways.
 
-**Takeaway:** Highlights **process‑level** themes in the dead‑end transcriptional state.
-"""
-
-_HELP_PATH_BUBBLE_RE = """
-**What this is:** The same **enrichment style** as dead‑end, but for genes associated with **reprogramming** outcomes.
-
-**How to read it:** Interpret **bubble position and size** as in the dead‑end panel. Pathways **strong here but not there** (and vice‑versa) are the most **discriminating**.
-
-**Takeaway:** Complements RNA‑level interpretability with **known pathway databases**.
-"""
-
-_HELP_PATH_HEAT = """
-**What this is:** A **gene × pathway** **heatmap** of **membership** among **leading** genes from the enrichment results (Reactome / KEGG). **Empty** cells mean no assignment in that slice of the matrix.
-
-**How to read it:** **Rows** = genes; **columns** = pathways. **Colour intensity** shows presence/strength of membership depending on the encoding (use **hover**).
-
-**Takeaway:** Moves from **pathway lists** to a **literal gene‑to‑pathway map** for follow‑up.
+**Heatmap:** **Rows** = enriched **pathway terms** (Reactome block, then KEGG). **Columns** = **genes** (from the same fate-split marker lists that fed enrichment) plus a **Library** stripe (**Reactome** vs **KEGG** per row). **Colour** encodes **dead-end** vs **reprogramming** membership for that gene–pathway pair (and the library stripe); **hover** for the exact label. **Empty** cells = no link in this matrix slice.
 """
 
 st.title("Gene Expression & TF Activity")
 st.caption(
-    "Pathway enrichment (Reactome / KEGG) and a pathway-gene map; chromVAR-style motif deviations and activity by "
-    "fate; sortable gene and motif tables. Use **Feature Insights** for global shift and attention rankings across modalities."
+    "**Pathways** (Reactome / KEGG) and pathway–gene views; **ATAC motif** deviation and **TF activity** by fate; "
+    "**gene** and **motif** tables."
 )
 
 df = io.load_df_features()
@@ -59,10 +43,17 @@ if rna.empty and atac.empty:
     st.warning("No RNA gene or ATAC motif features are available in the current results.")
     st.stop()
 
-st.subheader("Gene pathway enrichment")
+try:
+    _pe_h_l, _pe_h_r = st.columns([0.94, 0.06], gap="small", vertical_alignment="center")
+except TypeError:
+    _pe_h_l, _pe_h_r = st.columns([0.94, 0.06], gap="small")
+with _pe_h_l:
+    st.subheader("Gene pathway enrichment")
+with _pe_h_r:
+    ui.plot_help_popover(_HELP_PATHWAY_ENRICHMENT, key="ge_pathway_page_help")
 st.caption(
-    "Over-representation of Reactome and KEGG pathways (Benjamini-Hochberg *q* < 0.05). "
-    "The lower panel maps leading genes to pathways; empty grid positions are left clear."
+    "Here, we turn fate-split RNA gene markers into Reactome and KEGG over-representation (bubble panels per cohort), "
+    "then lay out a pathway × gene heatmap for the leading hits."
 )
 raw = pathway_data.load_de_re_tsv()
 if raw is None:
@@ -76,9 +67,6 @@ else:
     )
     c1, c2 = st.columns(2, gap="medium")
     with c1:
-        _, _hp = st.columns([1, 0.22])
-        with _hp:
-            ui.plot_help_popover(_HELP_PATH_BUBBLE_DE, key="ge_bubble_de_help")
         st.plotly_chart(
             plots.pathway_enrichment_bubble_panel(
                 mde,
@@ -89,9 +77,6 @@ else:
             width="stretch",
         )
     with c2:
-        _, _hp = st.columns([1, 0.22])
-        with _hp:
-            ui.plot_help_popover(_HELP_PATH_BUBBLE_RE, key="ge_bubble_re_help")
         st.plotly_chart(
             plots.pathway_enrichment_bubble_panel(
                 mre,
@@ -106,7 +91,4 @@ else:
         st.info("No pathway-gene matrix could be built from the current enrichment results.")
     else:
         z, ylabs, xlabs = hm
-        _, _hp = st.columns([1, 0.18])
-        with _hp:
-            ui.plot_help_popover(_HELP_PATH_HEAT, key="ge_path_heat_help")
         st.plotly_chart(plots.pathway_gene_membership_heatmap(z, ylabs, xlabs), width="stretch")

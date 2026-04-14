@@ -1,4 +1,4 @@
-"""Flux Analysis — pathway sunburst and reaction annotation panels."""
+"""Flux Analysis: pathway sunburst and reaction annotation panels."""
 
 from __future__ import annotations
 
@@ -17,34 +17,20 @@ from streamlit_hf.lib import ui
 
 ui.inject_app_styles()
 
-_HELP_FLUX_SUNBURST = """
-**What this is:** A **hierarchical view** of **metabolic pathways** and the **individual flux reactions** that rank highest by **mean importance** in this model.
+_HELP_PATHWAY_MAP = """
+**Layout:** **Left column:** **sunburst**. **Right column:** **Pathway / Log₂FC / significance** (three **heatmap** columns, one **row** per reaction).
 
-**How to read it:** **Inner rings** = pathway context; **outer segments** = **reactions**. Larger / more central emphasis (depends on layout) highlights **stronger combined ranking** in the results table. Use the slider to include more or fewer reactions.
+**Sunburst:** **Inner ring** = **pathway**; **outer ring** = **reaction**. Reactions are the top set by **mean_rank** (FateFormer joint rank; **lower** = stronger). **Wedge size** reflects that ranking. **Colour** = per-reaction **log₂ fold change** in inferred flux for **reprogramming** vs **dead-end** samples (experimental labels).
 
-**Takeaway:** Quickly see **which pathways dominate** the model’s flux interpretation layer.
-"""
+**Pathway / Log₂FC / significance:** Same top-**N** reactions as the **Reactions in heatmap** slider (**N** rows). **Columns:** **Pathway** (categorical colour), **Log₂FC** (reprogramming vs dead-end), **−log₁₀ adjusted p** for that contrast. **Hover** for exact values.
 
-_HELP_FLUX_ANNOTATION = """
-**What this is:** **Heatmaps** aligned to the **same top reactions** as the sunburst: each row is a **reaction**, columns summarise **pathway membership**, **differential flux** (Log₂ fold change between fate groups), and **statistical significance**.
-
-**How to read it:** Scan rows for reactions that are both **statistically notable** and **highly ranked** by the model. **Hover** cells for exact values where Plotly provides tooltips.
-
-**Takeaway:** Links **statistics on measured flux** to **model-derived importance**.
-"""
-
-_HELP_FLUX_PROFILE = """
-**What this is:** A compact **profile** of **model‑centric metrics** (e.g. joint ranks) for the same **top reactions**, complementary to the heatmaps.
-
-**How to read it:** Compare **relative bars/scores** across reactions—**longer** usually means **stronger model priority** for that reaction in this summary.
-
-**Takeaway:** A second lens that tracks **interpretability scores** rather than raw flux alone.
+**Sliders:** **Reactions in sunburst** adjusts only the **left** sunburst. **Reactions in heatmap** sets how many top reactions appear in the **right-hand** heatmap.
 """
 
 st.title("Flux Analysis")
 st.caption(
-    "Reaction-level flux: how pathways, statistics, and model rankings line up. "
-    "For global rank bars and shift vs. attention scatter, open **Feature insights**."
+    "**Flux Analysis** ties inferred **reaction flux** to **pathways**, **fate contrasts**, **rankings**, and **model** metadata. "
+    "For multimodal **shift**/**attention** summaries, open **Feature Insights**."
 )
 
 try:
@@ -67,38 +53,51 @@ else:
         _data_msg = "There are no flux reactions in the current results."
         flux = None
 
-st.subheader("Pathway map")
+try:
+    _pm_h_l, _pm_h_r = st.columns([0.94, 0.06], gap="small", vertical_alignment="center")
+except TypeError:
+    _pm_h_l, _pm_h_r = st.columns([0.94, 0.06], gap="small")
+with _pm_h_l:
+    st.subheader("Pathway map")
+with _pm_h_r:
+    ui.plot_help_popover(_HELP_PATHWAY_MAP, key="flux_pathway_map_help")
+
 if not _data_ok:
     st.error(_data_msg)
 else:
     st.caption(
-        "**Left:** sunburst of the strongest reactions by mean rank, grouped by pathway. **Right:** heatmaps for the "
-        "same reactions: pathway, differential Log₂FC, and statistical significance, aligned row by row. "
-        "Ranked reaction table: **Reaction ranking**. Curated model edges: **Model metadata**."
+        "Here, we map top FateFormer-ranked flux reactions into pathway context: a sunburst (pathway → reaction) and a "
+        "heatmap of pathway, log₂ fold change, and significance for reprogramming vs dead-end."
     )
     try:
         c1, c2 = st.columns([1.05, 0.95], gap="medium", vertical_alignment="top")
     except TypeError:
         c1, c2 = st.columns([1.05, 0.95], gap="medium")
     with c1:
-        n_sb = st.slider("Reactions in sunburst", 25, 90, 52, key="flux_sb_n")
-        _, _hp = st.columns([1, 0.22])
-        with _hp:
-            ui.plot_help_popover(_HELP_FLUX_SUNBURST, key="flux_sb_help")
+        n_sb = st.slider(
+            "Reactions in sunburst",
+            25,
+            90,
+            52,
+            key="flux_sb_n",
+            help=(
+                "How many **top** flux reactions (by **mean rank**) appear in the **sunburst** only. "
+                "Does not change the heatmap; use the other slider for that."
+            ),
+        )
         st.plotly_chart(plots.flux_pathway_sunburst(flux, max_features=n_sb), width="stretch")
     with c2:
-        top_n_nb = st.slider("Reactions in annotation + profile", 12, 40, 26, key="flux_nb_n")
-        _, _hp = st.columns([1, 0.22])
-        with _hp:
-            ui.plot_help_popover(_HELP_FLUX_ANNOTATION, key="flux_ann_help")
+        top_n_nb = st.slider(
+            "Reactions in heatmap",
+            12,
+            40,
+            26,
+            key="flux_nb_n",
+            help=(
+                "How many **top** flux reactions (by **mean rank**) appear as **rows** in the **Pathway / Log₂FC / significance** heatmap."
+            ),
+        )
         st.plotly_chart(
             plots.flux_reaction_annotation_panel(flux, top_n=top_n_nb, metric="mean_rank"),
-            width="stretch",
-        )
-        _, _hp2 = st.columns([1, 0.22])
-        with _hp2:
-            ui.plot_help_popover(_HELP_FLUX_PROFILE, key="flux_prof_help")
-        st.plotly_chart(
-            plots.flux_model_metric_profile(flux, top_n=min(top_n_nb, 24), metric="mean_rank"),
             width="stretch",
         )

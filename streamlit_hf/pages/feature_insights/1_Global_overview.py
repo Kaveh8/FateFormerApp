@@ -1,4 +1,4 @@
-"""Feature Insights — global overview of multimodal feature importance."""
+"""Feature Insights: global overview of multimodal feature importance."""
 
 from __future__ import annotations
 
@@ -18,17 +18,12 @@ from streamlit_hf.lib import ui
 ui.inject_app_styles()
 
 _GLOBAL_OVERVIEW_HELP = """
-**What this is:** A **global** snapshot of which **genes, ATAC peaks, or flux reactions** rank highest when **latent shift probes** and **attention rollout** are combined across the whole model.
+**What this is:** The **top important fate-predictor markers** for **FateFormer** across its **three modalities** (**RNA** genes, **TF motifs** from chromatin (ATAC), and **flux** reactions), as a **global** view that combines **latent shift** probes and **attention rollout** over the full model.
 
-**Panels:** **Shift** and **attention** bar charts show the **top‑N** features for each metric (**min‑max scaled within that chart**). The **pie** shows the **RNA / ATAC / Flux** breakdown among a larger pool of **lowest mean‑rank** features (strongest overall joint ranking).
+**Panels:** **Shift** and **attention** bar charts show the **top‑N** features for each metric (**min‑max scaled within that chart**, longest bar = 1). The **pie chart** (right) shows **modality mix** (RNA vs ATAC vs Flux) among a pool of **strongest** features by **mean rank** (**lower mean rank** = higher joint priority).
 
-**How to read it:** **Lower mean rank** = higher priority in the joint ranking. **Colours** encode **modality**. Use the sliders to change how many bars and how large the pie pool is.
-
-**Takeaway:** See whether interpretability is **RNA‑heavy**, **metabolism‑heavy**, or **balanced** before drilling into modality pages.
+**How to read it:** **Longer bars** mean stronger measured influence for that metric. **Colours** mark **modality**. Use the **sliders** above to change bar count and pie pool size. The **pie chart** answers: “Among the most important features in this pool, which data type dominates?”.
 """
-
-st.title("Feature Insights")
-st.caption("Latent-shift probes, attention rollout, and combined rankings across RNA, ATAC, and Flux.")
 
 df = io.load_df_features()
 
@@ -38,7 +33,14 @@ if df is None:
     )
     st.stop()
 
+st.title(ui.FEATURE_INSIGHTS_TITLE)
+st.caption(ui.FEATURE_INSIGHTS_CAPTION)
 st.subheader("Global overview")
+st.caption(
+    "Here, we give a birds-eye view of which RNA, ATAC, and Flux features matter most: top-N bars for latent shift and "
+    "attention (two explainability methods), plus a pie of modality mix among the strongest features by mean rank "
+    "(sliders change list sizes)."
+)
 c1, c2 = st.columns(2)
 with c1:
     top_n_bars = st.slider(
@@ -47,6 +49,11 @@ with c1:
         45,
         20,
         key="t1_topn_bars",
+        help=(
+            "How many features appear in the left (latent shift) and middle (attention) bar charts: the top N by each "
+            "metric. Each chart is min–max scaled on its own (longest bar = 1). Increase N to list more markers; "
+            "decrease N to focus on the strongest few."
+        ),
     )
 with c2:
     top_n_pie = st.slider(
@@ -55,6 +62,11 @@ with c2:
         250,
         100,
         key="t1_topn_pie",
+        help=(
+            "How many features define the right-hand pie chart: the N strongest by mean rank (lower mean rank = "
+            "stronger joint ranking across shift and attention). A larger pool gives a broader modality mix "
+            "(RNA vs ATAC vs Flux); a smaller pool weights only the very top joint features."
+        ),
     )
 ui.plot_caption_with_help(
     "Global top features by shift vs attention; pie = modality mix among strongest mean-rank pool.",

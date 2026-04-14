@@ -1,4 +1,4 @@
-"""Feature Insights — modality spotlight (RNA, ATAC, Flux)."""
+"""Feature Insights: modality spotlight (RNA, ATAC, Flux)."""
 
 from __future__ import annotations
 
@@ -17,30 +17,15 @@ from streamlit_hf.lib import ui
 
 ui.inject_app_styles()
 
-_HELP_JOINT = """
-**What this is:** Within **{mod}** only, features with the **strongest joint ranking** (combined shift + attention priority).
+_HELP_PAGE = """
+**Layout:** Three modality columns (**RNA**, **ATAC**, **Flux**). Each column uses only that modality’s features (**genes**, **TF motifs** from chromatin, or **metabolic reactions**).
 
-**How to read it:** Each row is **one feature**; the **two bars** are **shift** and **attention** scores **rescaled0–1 within this top‑N list** so they are comparable. **Hover** for the full name.
+**Joint row** (*Joint top markers*): Features ordered by **mean rank** (combined shift + attention; **lower mean rank** = stronger joint priority). Each row is one feature with **two bars** (shift and attention), **min–max scaled within this top‑N list** (0–1) so both are comparable. **Hover** a bar for the full name.
 
-**Takeaway:** Highlights markers that are important both to **representations** and to **model focus** in this modality.
+**Shift row** (*Shift importance*): **Shift-only** top **N** by latent shift score per column. **Longer bar** = larger shift in this list. **Hover** for the full name.
+
+**Attention row** (*Attention importance*): **Attention-only** top **N** by rollout importance per column. **Longer bar** = more average attention. **Hover** for the full name.
 """
-
-_HELP_SHIFT = """
-**What this is:** **{mod}** features with highest **latent shift** importance—those whose perturbation **moves the model’s latent state** most.
-
-**How to read it:** **Longer bar** = larger shift score within this **top‑N** list (compare lengths across features).
-
-**Takeaway:** Mechanistic “if we nudge this input, the embedding changes a lot.”
-"""
-
-_HELP_ATT = """
-**What this is:** **{mod}** features with highest **attention** importance from rollout—what the **transformer emphasises** when processing cells.
-
-**How to read it:** **Longer bar** = more average attention mass on that feature (within this top‑N list).
-
-**Takeaway:** Describes **model behaviour** (what it “looks at”), which can differ from causal shift effects.
-"""
-st.caption("Latent-shift probes, attention rollout, and combined rankings across RNA, ATAC, and Flux.")
 
 df = io.load_df_features()
 
@@ -50,17 +35,36 @@ if df is None:
     )
     st.stop()
 
-st.subheader("Modality spotlight")
+st.title(ui.FEATURE_INSIGHTS_TITLE)
+st.caption(ui.FEATURE_INSIGHTS_CAPTION)
+try:
+    _spot_h_l, _spot_h_r = st.columns([0.94, 0.06], gap="small", vertical_alignment="center")
+except TypeError:
+    _spot_h_l, _spot_h_r = st.columns([0.94, 0.06], gap="small")
+with _spot_h_l:
+    st.subheader("Modality spotlight")
+with _spot_h_r:
+    ui.plot_help_popover(_HELP_PAGE, key="t2_page_help")
 st.caption(
-    "**Modality spotlight:** three columns (**RNA**, **ATAC**, **Flux**). Each column only shows features "
-    "from that modality so you can compare shift impact, attention, and joint ranking **within** RNA, ATAC, or flux."
+    "Here, we zoom into one modality at a time (RNA, ATAC, or Flux) to explore top fate predictor markers: for each column "
+    "you see joint top markers, then shift-only and attention-only rankings side by side so within-modality comparisons "
+    "stay fair."
 )
-top_n_rank = st.slider("Top N per chart", 10, 55, 20, key="t2_topn")
+top_n_rank = st.slider(
+    "Top N per chart",
+    10,
+    55,
+    20,
+    key="t2_topn",
+    help=(
+        "Number of features in each chart on this page: the joint (mean-rank) row, the shift-only row, "
+        "and the attention-only row all use this N within each modality column."
+    ),
+)
+
 st.markdown("##### Joint top markers (by mean rank)")
 st.caption(
-    "The **strongest combined** markers by mean rank (lower mean rank = higher joint shift + attention priority). "
-    "Shift and attention bars are **min-max scaled within this top-N list** (0 to 1) so you can compare them on one axis. "
-    "Hover a bar for the full feature name."
+    "Joint row: strongest by mean rank; shift and attention bars scaled within this top-N list. Hover a bar for the full name."
 )
 r1a, r1b, r1c = st.columns(3)
 for col, mod in zip((r1a, r1b, r1c), ("RNA", "ATAC", "Flux")):
@@ -68,13 +72,11 @@ for col, mod in zip((r1a, r1b, r1c), ("RNA", "ATAC", "Flux")):
     if sm.empty:
         continue
     with col:
-        _, _hp = st.columns([1, 0.28])
-        with _hp:
-            ui.plot_help_popover(_HELP_JOINT.format(mod=mod), key=f"t2_joint_{mod}")
         st.plotly_chart(
             plots.joint_shift_attention_top_features(sm, mod, top_n_rank),
             width="stretch",
         )
+
 st.markdown("##### Shift importance")
 r2a, r2b, r2c = st.columns(3)
 for col, mod in zip((r2a, r2b, r2c), ("RNA", "ATAC", "Flux")):
@@ -84,9 +86,6 @@ for col, mod in zip((r2a, r2b, r2c), ("RNA", "ATAC", "Flux")):
     colc = plots.MODALITY_COLOR.get(mod, plots.PALETTE[0])
     sub = sm.nlargest(top_n_rank, "importance_shift").sort_values("importance_shift", ascending=True)
     with col:
-        _, _hp = st.columns([1, 0.28])
-        with _hp:
-            ui.plot_help_popover(_HELP_SHIFT.format(mod=mod), key=f"t2_shift_{mod}")
         st.plotly_chart(
             plots.rank_bar(
                 sub,
@@ -98,6 +97,7 @@ for col, mod in zip((r2a, r2b, r2c), ("RNA", "ATAC", "Flux")):
             ),
             width="stretch",
         )
+
 st.markdown("##### Attention importance")
 r3a, r3b, r3c = st.columns(3)
 for col, mod in zip((r3a, r3b, r3c), ("RNA", "ATAC", "Flux")):
@@ -107,9 +107,6 @@ for col, mod in zip((r3a, r3b, r3c), ("RNA", "ATAC", "Flux")):
     colc = plots.MODALITY_COLOR.get(mod, plots.PALETTE[0])
     sub = sm.nlargest(top_n_rank, "importance_att").sort_values("importance_att", ascending=True)
     with col:
-        _, _hp = st.columns([1, 0.28])
-        with _hp:
-            ui.plot_help_popover(_HELP_ATT.format(mod=mod), key=f"t2_att_{mod}")
         st.plotly_chart(
             plots.rank_bar(
                 sub,

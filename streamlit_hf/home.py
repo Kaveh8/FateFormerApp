@@ -18,6 +18,11 @@ from streamlit_hf.lib import plots
 from streamlit_hf.lib import ui
 
 _CACHE = Path(__file__).resolve().parent / "cache"
+_EXPERIMENT_SVG = Path(__file__).resolve().parent / "static" / "experiment.svg"
+# Display width (px) for the home-page schematic; SVG scales cleanly at fixed width.
+_EXPERIMENT_FIGURE_WIDTH_PX = 380
+
+_CELLTAG_MULTI_ARTICLE_URL = "https://www.nature.com/articles/s41587-023-01931-4"
 
 _APP_NAME = "FateFormer Explorer"
 _HERO_EMOJI = "\U0001f9ec"  # DNA (matches HF Space card tone)
@@ -27,23 +32,21 @@ _HOME_RANK_TOP_N = 15
 _VALIDATION_ROC_AUC = 0.93
 
 _UMAP_HOME_TITLE = "Validation latent space (UMAP)"
+_UMAP_HOME_SUBTITLE = "Each point is a cell · colours = experimental fate labels · validation split"
+_UMAP_HOME_SUBTITLE_RANK_MISSING = "Feature ranking cache unavailable · UMAP only"
 
-_UMAP_HELP_MD = """
-**What this is:** A 2‑D **UMAP** of validation cells in the model’s **shared latent space** (RNA + chromatin + flux combined). Nearby points have **similar multimodal profiles**.
+_UMAP_HELP_MD = f"""
+**What this is:** A 2‑D **UMAP** of validation **single cells** in the model’s **latent space** (**context vector token representation**), summarised across **5-fold cross-validation**. **2,110** cells are shown.
 
-**How to read it:** Axes are **unitless**—UMAP preserves *local* neighbourhoods, not real physical scales. **Colour** is the **experimental fate** from CellTag‑Multi labels. **Hover** a point for cell-level details.
-
-**Takeaway:** See whether biological fates form separable groups in the representation the model actually uses.
+**How to read it:** Each point is one cell. **Colour** is **experimental fate** from [**CellTag-Multi**]({_CELLTAG_MULTI_ARTICLE_URL}) clonal labels. **Axes are unitless**: UMAP preserves *local* neighbourhoods, not real physical distances, so **nearby points** tend to have similar characteristics in this representation. **Hover** a point for cell-level details. For more detail (interactive UMAP, filters, and metadata), open **Single-Cell Explorer** using the link below.
 """
 
 _GLOBAL_RANK_HELP_MD = """
-**What this is:** Three linked summaries of **which features** (genes, peaks, or reactions) the analyses rank highest **globally** across modalities.
+**What this is:** The **top important fate-predictor markers** for **FateFormer** across its **three modalities** (**RNA** genes, **TF motifs** from chromatin (ATAC), and **flux** reactions), shown as three linked summaries.
 
 **Panels:** **Left / middle** = top features by **latent shift** importance and by **attention** (bars are **min‑max scaled within that panel** so the longest bar is 1). **Right** = **modality mix** (RNA vs ATAC vs Flux) among a pool of **strongest** features by **mean rank** (lower mean rank = higher joint priority).
 
 **How to read it:** Longer bars mean stronger measured influence for that metric. **Colours** mark **modality**. The donut answers: “Among the most important features in this pool, which data type dominates?”.
-
-**Takeaway:** Connects **mechanistic probes** (shift) with **what the transformer emphasises** (attention) in one glance.
 """
 
 _APP_SUBTITLE = (
@@ -51,12 +54,15 @@ _APP_SUBTITLE = (
     "to predict single-cell fate, with interpretable attention and latent-shift rankings across omics layers."
 )
 
-_BIOLOGY_CONTEXT_MARKDOWN = """
-**At a glance**
+_EXPERIMENTAL_SYSTEM_MD = f"""
+Mouse embryonic fibroblasts (**MEFs**) were reprogrammed toward induced endoderm progenitors (**iEPs**) **in vitro** through *Foxa1* and *HNF4A* induction. This process produces **mixed outcomes**: some cells successfully reach the **iEP fate**, whereas others diverge into **off-target** trajectories and stall in **dead-end states**. Using [**CellTag-Multi**]({_CELLTAG_MULTI_ARTICLE_URL}) clonal barcoding, **early cells** could be linked to their **later fate**, which made it possible to ask a central biological question: which programs in **early-state cells**, coordinated **across transcriptional, chromatin, and metabolic layers**, drive successful reprogramming, which ones push cells toward off-target states, and which of these mechanisms could be targeted to improve reprogramming efficiency?
+"""
 
-- **Biological setting:** **FateFormer** models **direct reprogramming** from mouse embryonic fibroblasts (**MEFs**) to induced endoderm progenitors (**iEPs**), combining **transcriptome (scRNA-seq)**, **chromatin (scATAC-seq)**, and **genome-scale metabolic flux** so fate is not inferred from RNA alone; epigenetic and metabolic context matter.
-- **Data & labels:** Trained on a **large sparse-modality** atlas (**>150,000** cells); **2,110** early cells carry **CellTag-Multi** clonal fate tags, the same experimental labels used to colour validation cells in **UMAP** views here.
-- **Model design:** A **transformer** learns **shared representations** across modalities, handles **missing modalities** and **scarce fate labels**, and ties early transcription, chromatin accessibility, and metabolic activity to **later lineage outcomes**, going beyond RNA-only views of reprogramming.
+_BIOLOGY_CONTEXT_MARKDOWN = f"""
+**How FateFormer addresses this**
+- **Multimodal view:** FateFormer integrates **scRNA-seq**, **scATAC-seq**, and **genome-scale metabolic flux** to capture regulatory and metabolic signals that are missed by RNA-only analysis.
+- **Grounded in lineage tracing:** The model is trained on a **sparse-modality atlas of more than 150,000 cells**, including **2,110** early cells linked to later outcomes through **CellTag-Multi** clonal barcoding.
+- **Biological insight:** FateFormer learns representations across modalities, handles **missing inputs** and **limited labels**, and using **explainability methods** highlights the transcriptional, chromatin, and metabolic programs associated with reprogramming success or off target failure.
 """
 
 
@@ -83,6 +89,16 @@ st.markdown(
 </div></div></div>""",
     unsafe_allow_html=True,
 )
+
+with st.container(border=True):
+    fig_col, text_col = st.columns([0.42, 0.58], gap="large")
+    with fig_col:
+        if _EXPERIMENT_SVG.is_file():
+            st.image(str(_EXPERIMENT_SVG), width=_EXPERIMENT_FIGURE_WIDTH_PX)
+        else:
+            st.caption("Experimental schematic (`static/experiment.svg`) is missing.")
+    with text_col:
+        st.markdown(_EXPERIMENTAL_SYSTEM_MD)
 
 bundle = io.load_latent_bundle()
 df_features = io.load_df_features()
@@ -164,26 +180,33 @@ if bundle is not None and df_features is not None:
     with row1_story:
         st.markdown(_BIOLOGY_CONTEXT_MARKDOWN)
     with row1_umap:
-        ui.plot_caption_with_help(
-            "Each point is a cell · colours = experimental fate labels · validation split",
-            _UMAP_HELP_MD,
-            key="home_umap_help",
-        )
-        fig_u = plots.latent_scatter(
-            plot_umap,
-            "label",
-            title=_UMAP_HOME_TITLE,
-            width=780,
-            height=440,
-            marker_size=5.2,
-            marker_opacity=0.72,
-        )
-        fig_u.update_layout(margin=dict(l=20, r=8, t=52, b=20), title_font_size=15)
-        st.plotly_chart(
-            fig_u,
-            width="stretch",
-            config={"displayModeBar": True, "displaylogo": False, "modeBarButtonsToRemove": ["lasso2d", "select2d"]},
-        )
+        try:
+            _umap_plot_col, _umap_help_col = st.columns([0.94, 0.06], gap="small", vertical_alignment="top")
+        except TypeError:
+            _umap_plot_col, _umap_help_col = st.columns([0.94, 0.06], gap="small")
+        with _umap_plot_col:
+            fig_u = plots.latent_scatter(
+                plot_umap,
+                "label",
+                title=_UMAP_HOME_TITLE,
+                width=780,
+                height=440,
+                marker_size=5.2,
+                marker_opacity=0.72,
+                subtitle=_UMAP_HOME_SUBTITLE,
+            )
+            fig_u.update_layout(margin=dict(l=20, r=8, t=92, b=20), title_font_size=15)
+            st.plotly_chart(
+                fig_u,
+                width="stretch",
+                config={"displayModeBar": True, "displaylogo": False, "modeBarButtonsToRemove": ["lasso2d", "select2d"]},
+            )
+        with _umap_help_col:
+            ui.plot_help_popover(
+                _UMAP_HELP_MD,
+                key="home_umap_help",
+                page_link=("pages/1_Single_Cell_Explorer.py", "Single-Cell Explorer"),
+            )
 
     ui.plot_caption_with_help(
         "Global shift and attention · top features (min-max scaled within each bar chart) · modality mix donut (top by mean rank).",
@@ -211,22 +234,29 @@ elif bundle is not None:
     with u_story:
         st.markdown(_BIOLOGY_CONTEXT_MARKDOWN)
     with u_map:
-        ui.plot_caption_with_help(
-            "Feature ranking cache unavailable · UMAP only",
-            _UMAP_HELP_MD,
-            key="home_umap_only_help",
-        )
-        fig_u = plots.latent_scatter(
-            plot_umap,
-            "label",
-            title=_UMAP_HOME_TITLE,
-            width=820,
-            height=480,
-            marker_size=5.5,
-            marker_opacity=0.72,
-        )
-        fig_u.update_layout(margin=dict(l=24, r=12, t=52, b=24), title_font_size=15)
-        st.plotly_chart(fig_u, width="stretch", config={"displayModeBar": True, "displaylogo": False})
+        try:
+            _umap_plot_col2, _umap_help_col2 = st.columns([0.94, 0.06], gap="small", vertical_alignment="top")
+        except TypeError:
+            _umap_plot_col2, _umap_help_col2 = st.columns([0.94, 0.06], gap="small")
+        with _umap_plot_col2:
+            fig_u = plots.latent_scatter(
+                plot_umap,
+                "label",
+                title=_UMAP_HOME_TITLE,
+                width=820,
+                height=480,
+                marker_size=5.5,
+                marker_opacity=0.72,
+                subtitle=_UMAP_HOME_SUBTITLE_RANK_MISSING,
+            )
+            fig_u.update_layout(margin=dict(l=24, r=12, t=92, b=24), title_font_size=15)
+            st.plotly_chart(fig_u, width="stretch", config={"displayModeBar": True, "displaylogo": False})
+        with _umap_help_col2:
+            ui.plot_help_popover(
+                _UMAP_HELP_MD,
+                key="home_umap_only_help",
+                page_link=("pages/1_Single_Cell_Explorer.py", "Single-Cell Explorer"),
+            )
 elif df_features is not None:
     ui.plot_caption_with_help(
         "Feature ranking overview · latent UMAP unavailable",

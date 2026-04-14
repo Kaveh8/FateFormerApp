@@ -1,4 +1,4 @@
-"""Gene expression — searchable gene ranking table."""
+"""Gene expression: searchable gene ranking table."""
 
 from __future__ import annotations
 
@@ -16,6 +16,10 @@ from streamlit_hf.lib import io
 from streamlit_hf.lib import ui
 
 ui.inject_app_styles()
+
+_HELP_GENE_TABLE = """
+**scRNA-seq** genes used as features in this run: **one row per gene**, sorted by **mean rank** (joint importance). Additional columns are **FateFormer** rank and attribution summaries (within RNA and globally), **per-fate** expression (**dead-end** vs **reprogramming**), and **differential** statistics (*p*-values, log fold change, **group**). Search to narrow the list; use **Download** for a CSV copy.
+"""
 
 TABLE_COLS = [
     "mean_rank",
@@ -44,8 +48,8 @@ def _table_cols(show: pd.DataFrame) -> list[str]:
 
 st.title("Gene Expression & TF Activity")
 st.caption(
-    "Pathway enrichment (Reactome / KEGG) and a pathway-gene map; chromVAR-style motif deviations and activity by "
-    "fate; sortable gene and motif tables. Use **Feature Insights** for global shift and attention rankings across modalities."
+    "**Pathways** (Reactome / KEGG) and pathway–gene views; **ATAC motif** deviation and **TF activity** by fate; "
+    "**gene** and **motif** tables."
 )
 
 df = io.load_df_features()
@@ -59,7 +63,19 @@ if rna.empty and atac.empty:
     st.warning("No RNA gene or ATAC motif features are available in the current results.")
     st.stop()
 
-st.subheader("Gene table")
+try:
+    _gt_h_l, _gt_h_r = st.columns([0.94, 0.06], gap="small", vertical_alignment="center")
+except TypeError:
+    _gt_h_l, _gt_h_r = st.columns([0.94, 0.06], gap="small")
+with _gt_h_l:
+    st.subheader("Gene table")
+with _gt_h_r:
+    ui.plot_help_popover(_HELP_GENE_TABLE, key="ge_gene_table_help")
+st.caption(
+    "Here is a searchable table of all scRNA-seq genes in the feature set, with FateFormer ranks and per-fate expression "
+    "and differential statistics that you can sort, filter by name, or download CSV."
+)
+
 if rna.empty:
     st.warning("No RNA gene features are available in the current results.")
 else:

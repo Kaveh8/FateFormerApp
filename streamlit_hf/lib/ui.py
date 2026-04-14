@@ -4,6 +4,12 @@ from __future__ import annotations
 
 import streamlit as st
 
+# Feature Insights multipage hub: same title + tagline on every sub-page.
+FEATURE_INSIGHTS_TITLE = "Feature Insights"
+FEATURE_INSIGHTS_CAPTION = (
+    "Latent-shift probes, attention rollout, and combined rankings across RNA, ATAC, and Flux."
+)
+
 
 def inject_app_styles() -> None:
     """Panel labels, page background, and shared chrome (all pages)."""
@@ -69,8 +75,17 @@ section[data-testid="stMain"] h1 {
     )
 
 
-def plot_help_popover(help_md: str, *, key: str) -> None:
-    """Small help control next to a figure; opens Markdown guidance for biologists."""
+def plot_help_popover(
+    help_md: str,
+    *,
+    key: str,
+    page_link: tuple[str, str] | None = None,
+) -> None:
+    """Small help control next to a figure; opens Markdown guidance for biologists.
+
+    If ``page_link`` is ``(path, label)``, a ``st.page_link`` is rendered after the markdown
+    (e.g. ``("pages/1_Single_Cell_Explorer.py", "Single-Cell Explorer")``).
+    """
     with st.popover(
         " ",
         help="What does this figure show?",
@@ -80,6 +95,9 @@ def plot_help_popover(help_md: str, *, key: str) -> None:
         key=key,
     ):
         st.markdown(help_md)
+        if page_link:
+            page_path, page_label = page_link
+            st.page_link(page_path, label=page_label)
 
 
 def plot_caption_with_help(caption: str, help_md: str, *, key: str) -> None:

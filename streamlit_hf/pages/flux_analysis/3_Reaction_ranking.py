@@ -1,4 +1,4 @@
-"""Flux Analysis — ranked reaction table and download."""
+"""Flux Analysis: ranked reaction table and download."""
 
 from __future__ import annotations
 
@@ -17,17 +17,21 @@ from streamlit_hf.lib import ui
 ui.inject_app_styles()
 
 _HELP_REACTION_TABLE = """
-**What this is:** A **sortable, filterable** version of the **flux reaction** interpretability table (same reactions as elsewhere in Flux Analysis).
+**What this is:** The **full FateFormer flux reaction table** for this deployment: one **row** per **reaction** in the metabolic layer, with **joint ranking** and cohort flux statistics from the precomputed results.
 
-**Columns:** Typically include **mean_rank** (overall priority), **shift** / **attention** ranks and scores, **pathway** / **module**, and **differential statistics** (e.g. Log₂FC, adjusted *p*) where computed.
+**Ranking:** **mean_rank** = combined **shift + attention** priority (**lower** = stronger overall). **rank_shift_in_modal** / **rank_att_in_modal** and **combined_order_mod** are **within-modality** (Flux-only) ranks; **rank_shift** / **rank_att** are **global** across all features. **importance_shift** / **importance_att** are the underlying scores. **top_10_pct** (if present) flags global top-decile membership from the publish step.
 
-**How to use:** **Filter** by name substring or **pathway**, then **download CSV** for plotting or supplementary material.
+**Flux / cohort columns:** **mean_de** / **mean_re** = **mean inferred flux** in **dead-end** vs **reprogramming** samples. **log_fc** = **log₂** fold change between those cohorts for that reaction. **pval_adj** = **adjusted p-value** for that contrast. **group** summarises direction or contrast label when present.
+
+**Context:** **pathway** and **module** annotate the reaction in the reconstruction.
+
+**Use:** Narrow rows with the **substring** and **pathway** controls; use the table’s own **sort** if your Streamlit build exposes it. **Download** saves the **filtered** view as CSV.
 """
 
 st.title("Flux Analysis")
 st.caption(
-    "Reaction-level flux: how pathways, statistics, and model rankings line up. "
-    "For global rank bars and shift vs. attention scatter, open **Feature insights**."
+    "**Flux Analysis** ties inferred **reaction flux** to **pathways**, **fate contrasts**, **rankings**, and **model** metadata. "
+    "For multimodal **shift**/**attention** summaries, open **Feature Insights**."
 )
 
 try:
@@ -51,20 +55,31 @@ else:
         flux = None
 
 st.subheader("Reaction ranking")
+st.caption(
+    "Here is the searchable flux reaction table: every reaction’s FateFormer ranks, cohort flux summaries, and pathway "
+    "context, with filters and CSV download."
+)
 if not _data_ok:
     st.error(_data_msg)
 else:
-    ui.plot_caption_with_help(
-        "Filter by reaction name or pathway, then inspect or download the ranked flux table.",
-        _HELP_REACTION_TABLE,
-        key="flux_rank_table_help",
+    try:
+        _rr_l, _rr_r = st.columns([0.94, 0.06], gap="small", vertical_alignment="center")
+    except TypeError:
+        _rr_l, _rr_r = st.columns([0.94, 0.06], gap="small")
+    with _rr_r:
+        ui.plot_help_popover(_HELP_REACTION_TABLE, key="flux_rank_table_help")
+    q = st.text_input(
+        "Substring filter (reaction name)",
+        "",
+        key="flux_q",
+        help="Keep rows whose **reaction** string contains this text (case-insensitive). Leave empty for no name filter.",
     )
-    q = st.text_input("Substring filter (reaction name)", "", key="flux_q")
     pw_f = st.multiselect(
         "Pathway",
         sorted(flux["pathway"].dropna().unique().astype(str)),
         default=[],
         key="flux_pw_f",
+        help="Keep rows in any of the selected **pathways**. Leave empty to include all pathways.",
     )
     show = flux
     if q.strip():
@@ -101,4 +116,5 @@ else:
         file_name="fateformer_flux_filtered.csv",
         mime="text/csv",
         key="flux_dl",
+        help="CSV of the **current filtered** table (same columns as on screen), sorted by **mean_rank**.",
     )

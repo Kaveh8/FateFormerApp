@@ -1,4 +1,4 @@
-"""Flux Analysis — metabolic map with searchable side panel."""
+"""Flux Analysis: metabolic map with searchable side panel."""
 
 from __future__ import annotations
 
@@ -18,18 +18,18 @@ from streamlit_hf.lib import ui
 
 ui.inject_app_styles()
 
-_HELP_MET_MAP = """
-**What this is:** An **interactive schematic** of the metabolic map: **nodes/labels** are **metabolites** linked to the reconstruction. The **sidebar list** ranks metabolites by the **strongest associated flux reaction** in this deployment (**#1** = top rank).
+_NAR_FATEFORMER_URL = "https://academic.oup.com/nar/article/51/W1/W180/7175334"
 
-**How to use:** **Search** the list (every word must match somewhere in that row). **Hover** metabolite labels on the map for a short **tooltip**. **Pan** (drag background) and **zoom** (scroll or **+ / −**). **Esc** clears search.
+_HELP_MET_MAP = f"""
+**Figure (paper):** Network model of key metabolic pathways linked to fate outcomes identified by the model. Important pathways and reactions are mapped onto the **scFLUX** metabolic network schema. **Arrow colour** shows the **log₂ fold change** in **scFEA**-inferred flux between **reprogramming** and **dead-end** cells: **red** = higher flux in reprogramming, **blue** = higher in dead-end. **Black** arrows = no corresponding scFEA entry or no measurable flux difference. **Triple-star** markers in the figure denote **p_adj < 0.001** (two-sample *t*-test with Benjamini–Hochberg correction). Full article: [{_NAR_FATEFORMER_URL}]({_NAR_FATEFORMER_URL})
 
-**Takeaway:** A **navigation** layer to relate **pathway geography** to **model-ranked reactions**, not a quantitative flux balance diagram.
+**In this explorer:** The same schematic is **interactive**: **metabolites** on the map link to the reconstruction. The **sidebar** ranks metabolites by the **strongest associated flux reaction** in this deployment (**#1** = top). **Search** the list (every word must match somewhere in that row). **Hover** labels for a **tooltip**. **Pan** (drag background) and **zoom** (scroll or **+ / −**); **Esc** clears search. Use it as a **navigation** layer between **pathway geography** and **model-ranked reactions**, not a quantitative flux-balance diagram.
 """
 
 st.title("Flux Analysis")
 st.caption(
-    "Reaction-level flux: how pathways, statistics, and model rankings line up. "
-    "For global rank bars and shift vs. attention scatter, open **Feature insights**."
+    "**Flux Analysis** ties inferred **reaction flux** to **pathways**, **fate contrasts**, **rankings**, and **model** metadata. "
+    "For multimodal **shift**/**attention** summaries, open **Feature Insights**."
 )
 
 
@@ -210,7 +210,7 @@ function renderMetList(q){
     if(n++>=cap) break;
     const div=document.createElement('div');
     div.className='met-item'+(listHighlightKey===mrow.key?' hl':'');
-    const rk=mrow.importance_rank!=null?`<strong>#${mrow.importance_rank}</strong>`:'<span>—</span>';
+    const rk=mrow.importance_rank!=null?`<strong>#${mrow.importance_rank}</strong>`:'<span>-</span>';
     div.innerHTML=`<span class="nm">${escapeHtml(mrow.name)}</span><span class="rk">${rk}<br/><span style="opacity:.85">${mrow.n_reactions} rxn</span></span>`;
     div.addEventListener('mouseenter',ev=>{
       document.querySelectorAll('.met-item').forEach(x=>x.classList.remove('hl'));
@@ -314,8 +314,9 @@ init();
 
 
 st.subheader("Metabolic map")
+st.caption("This page shows the interactive metabolic map of important pathways and reactions.")
 ui.plot_caption_with_help(
-    "Browse metabolites tied to the reconstruction and flux layer. The number is the rank of the strongest linked step (1 = top).",
+    "Browse metabolites tied to the reconstruction and flux layer. The number is the rank of the strongest linked reaction (1 = top).",
     _HELP_MET_MAP,
     key="flux_map_help",
 )

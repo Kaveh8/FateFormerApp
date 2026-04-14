@@ -98,6 +98,7 @@ def latent_scatter(
     height: int = 520,
     marker_size: float = 5.0,
     marker_opacity: float = 0.78,
+    subtitle: str | None = None,
 ):
     d = df.copy()
     hover_spec = {
@@ -159,7 +160,8 @@ def latent_scatter(
         width=width,
         height=height,
     )
-    if title:
+    # Title + subtitle are applied via update_layout when `subtitle` is set (Plotly 5+).
+    if title and not subtitle:
         common["title"] = title
     if continuous:
         fig = px.scatter(
@@ -178,7 +180,10 @@ def latent_scatter(
     fig.update_traces(
         marker=dict(size=marker_size, opacity=marker_opacity, line=dict(width=0.25, color="rgba(255,255,255,0.4)"))
     )
-    top_margin = 56 if title else 28
+    if title and subtitle:
+        top_margin = 88
+    else:
+        top_margin = 56 if title else 28
     fig.update_layout(
         template="plotly_white",
         font=PLOT_FONT,
@@ -190,7 +195,20 @@ def latent_scatter(
         paper_bgcolor=PAGE_BG,
         plot_bgcolor=PAGE_BG,
     )
-    if not title:
+    if title and subtitle:
+        fig.update_layout(
+            title=dict(
+                text=title,
+                x=0.5,
+                xanchor="center",
+                font=dict(size=16, family=PLOT_FONT["family"]),
+                subtitle=dict(
+                    text=subtitle,
+                    font=dict(size=11, color="#64748b", family=PLOT_FONT["family"]),
+                ),
+            ),
+        )
+    elif not title:
         fig.update_layout(title=None)
     fig.update_xaxes(showticklabels=False, showgrid=True, gridcolor="rgba(0,0,0,0.06)", zeroline=False)
     fig.update_yaxes(showticklabels=False, showgrid=True, gridcolor="rgba(0,0,0,0.06)", zeroline=False)
@@ -198,20 +216,29 @@ def latent_scatter(
 
 
 def rank_scatter_shift_vs_attention(df_mod, modality: str, width: int = 420, height: int = 440):
-    """Attention rank on x, shift rank on y, least-squares trend line, discrete point colours."""
+    """Attention rank on x, shift rank on y, least-squares trend, colours by top ~10% within this modality."""
     need = ("shift_order_mod", "attention_order_mod")
     if not all(c in df_mod.columns for c in need):
         return go.Figure()
     sub = df_mod.dropna(subset=list(need)).copy()
     if sub.empty:
         return go.Figure()
+    n = len(sub)
+    top_k = max(1, int(np.ceil(0.1 * n)))
+    s_ok = sub["shift_order_mod"].astype(int) <= top_k
+    a_ok = sub["attention_order_mod"].astype(int) <= top_k
+    sub["_tier_label"] = np.where(
+        s_ok & a_ok,
+        "Both",
+        np.where(s_ok, "Shift", np.where(a_ok, "Attention", "Neither")),
+    )
     x = sub["attention_order_mod"].astype(float).to_numpy()
     y = sub["shift_order_mod"].astype(float).to_numpy()
     fig = px.scatter(
         sub,
         x="attention_order_mod",
         y="shift_order_mod",
-        color="top_10_pct",
+        color="_tier_label",
         hover_name="feature",
         hover_data={
             "mean_rank": True,
@@ -221,14 +248,16 @@ def rank_scatter_shift_vs_attention(df_mod, modality: str, width: int = 420, hei
         labels={
             "attention_order_mod": "Attention rank",
             "shift_order_mod": "Shift rank",
+            "_tier_label": "Top-10% tier",
         },
+        category_orders={"_tier_label": ["Both", "Shift", "Attention", "Neither"]},
         width=width,
         height=height,
         color_discrete_map={
-            "both": PALETTE[0],
-            "shift": PALETTE[1],
-            "att": PALETTE[2],
-            "None": "#94a3b8",
+            "Both": PALETTE[0],
+            "Shift": PALETTE[1],
+            "Attention": PALETTE[2],
+            "Neither": "#94a3b8",
         },
     )
     fig.update_traces(marker=dict(size=7, opacity=0.62, line=dict(width=0.5, color="rgba(15,23,42,0.28)")))
@@ -258,7 +287,14 @@ def rank_scatter_shift_vs_attention(df_mod, modality: str, width: int = 420, hei
             font=dict(size=14, family=PLOT_FONT["family"]),
         ),
         margin=dict(l=48, r=20, t=52, b=72),
-        legend=dict(orientation="h", yanchor="top", y=-0.2, xanchor="center", x=0.5),
+        legend=dict(
+            title=dict(text="Among top 10% features?"),
+            orientation="h",
+            yanchor="top",
+            y=-0.2,
+            xanchor="center",
+            x=0.5,
+        ),
     )
     return fig
 
@@ -1094,7 +1130,7 @@ def pathway_enrichment_bubble_panel(
 def pathway_gene_membership_heatmap(
     z: np.ndarray, row_labels: list[str], col_labels: list[str]
 ) -> go.Figure:
-    """Pathway × gene grid; empty cells transparent; Reactome/KEGG as a narrow left row spine."""
+    """Pathway × gene grid; empty cells use a light tint vs page white; Reactome/KEGG as a narrow left row spine."""
     if z.size == 0:
         return go.Figure()
 
@@ -1113,10 +1149,11 @@ def pathway_gene_membership_heatmap(
 
     # Discrete codes 0–4 must not use z/4 (3→0.75 landed in the KEGG band). Map to fixed slots.
     _z_plot = {0: 0.04, 1: 0.24, 2: 0.44, 3: 0.64, 4: 0.84}
-    transparent = "rgba(0,0,0,0)"
+    # Slight contrast vs PAGE_BG (#fff) so empty (code 0) cells read as a grid, not “missing” paint.
+    _empty_cell = "#f1f5f9"
     colorscale_main = [
-        [0.0, transparent],
-        [0.14, transparent],
+        [0.0, _empty_cell],
+        [0.14, _empty_cell],
         [0.15, "#e69138"],
         [0.33, "#e69138"],
         [0.34, "#7eb6d9"],

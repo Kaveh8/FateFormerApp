@@ -88,13 +88,9 @@ def load_metabolic_model_metadata() -> pd.DataFrame | None:
 
 def build_metabolic_model_table(
     meta: pd.DataFrame,
-    flux_df: pd.DataFrame,
     supermodule_id: int | None = None,
 ) -> pd.DataFrame:
-    """
-    Static edge list: substrate → product, reaction label, module class, plus DE / model columns when the
-    reaction string matches a row in the flux feature table.
-    """
+    """Rows from ``metabolic_model_metadata.csv`` (all file columns except a stray ``Unnamed: 0`` index column)."""
     need = {"Compound_IN_name", "Compound_OUT_name", "rxnName", "Supermodule_id", "Super.Module.class"}
     if not need.issubset(set(meta.columns)):
         return pd.DataFrame()
@@ -103,36 +99,9 @@ def build_metabolic_model_table(
         m = m[m["Supermodule_id"] == int(supermodule_id)]
     if m.empty:
         return pd.DataFrame()
-
-    fd = flux_df.copy()
-    fd["_rk"] = fd["feature"].map(normalize_reaction_key)
-    fd = fd.drop_duplicates("_rk", keep="first").set_index("_rk", drop=False)
-
-    rows: list[dict] = []
-    for _, r in m.iterrows():
-        k = normalize_reaction_key(str(r["rxnName"]))
-        base = {
-            "Supermodule": r.get("Super.Module.class"),
-            "Module_id": r.get("Module_id"),
-            "Substrate": r["Compound_IN_name"],
-            "Product": r["Compound_OUT_name"],
-            "Reaction": r["rxnName"],
-        }
-        if k in fd.index:
-            row = fd.loc[k]
-            if isinstance(row, pd.DataFrame):
-                row = row.iloc[0]
-            base["log_fc"] = row["log_fc"] if "log_fc" in row.index else None
-            base["pval_adj"] = row["pval_adj"] if "pval_adj" in row.index else None
-            base["mean_rank"] = row["mean_rank"] if "mean_rank" in row.index else None
-            base["pathway"] = row["pathway"] if "pathway" in row.index else None
-        else:
-            base["log_fc"] = None
-            base["pval_adj"] = None
-            base["mean_rank"] = None
-            base["pathway"] = None
-        rows.append(base)
-    return pd.DataFrame(rows)
+    if "Unnamed: 0" in m.columns:
+        m = m.drop(columns=["Unnamed: 0"])
+    return m.reset_index(drop=True)
 
 
 def _normalize_metabolite_token(name: str) -> str:
@@ -319,7 +288,7 @@ def build_metabolite_map_bundle(
         if smods:
             lines.append(f"Modules: {html.escape(' · '.join(smods[:4]))}")
         if best_importance is not None:
-            lines.append(f"Strongest linked step: #{best_importance}")
+            lines.append(f"Strongest linked reaction: #{best_importance}")
 
         top_rx = sorted(
             uniq_rx,
@@ -350,12 +319,12 @@ def build_metabolite_map_bundle(
         )
         if precursors:
             lines.append(
-                f"<span style='color:#656d76'>Model precursors (substrates in linked steps)</span><br/>"
+                f"<span style='color:#656d76'>Model precursors (substrates in linked reactions)</span><br/>"
                 f"{html.escape(', '.join(precursors[:8]))}"
             )
         if products:
             lines.append(
-                f"<span style='color:#656d76'>Model products (downstream in linked steps)</span><br/>"
+                f"<span style='color:#656d76'>Model products (downstream in linked reactions)</span><br/>"
                 f"{html.escape(', '.join(products[:8]))}"
             )
 

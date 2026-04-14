@@ -1,4 +1,4 @@
-"""Gene expression — searchable motif / TF table."""
+"""Gene expression: searchable motif / TF table."""
 
 from __future__ import annotations
 
@@ -16,6 +16,10 @@ from streamlit_hf.lib import io
 from streamlit_hf.lib import ui
 
 ui.inject_app_styles()
+
+_HELP_MOTIF_TABLE = """
+**ATAC** motif / TF features used in this run: **one row per feature**, sorted by **mean rank**. Columns include **FateFormer** ranking and attribution, **per-fate** activity summaries, and **differential** statistics. Search to narrow the list; use **Download** for a CSV copy.
+"""
 
 TABLE_COLS = [
     "mean_rank",
@@ -44,8 +48,8 @@ def _table_cols(show: pd.DataFrame) -> list[str]:
 
 st.title("Gene Expression & TF Activity")
 st.caption(
-    "Pathway enrichment (Reactome / KEGG) and a pathway-gene map; chromVAR-style motif deviations and activity by "
-    "fate; sortable gene and motif tables. Use **Feature Insights** for global shift and attention rankings across modalities."
+    "**Pathways** (Reactome / KEGG) and pathway–gene views; **ATAC motif** deviation and **TF activity** by fate; "
+    "**gene** and **motif** tables."
 )
 
 df = io.load_df_features()
@@ -59,7 +63,19 @@ if rna.empty and atac.empty:
     st.warning("No RNA gene or ATAC motif features are available in the current results.")
     st.stop()
 
-st.subheader("Motif table")
+try:
+    _mt_h_l, _mt_h_r = st.columns([0.94, 0.06], gap="small", vertical_alignment="center")
+except TypeError:
+    _mt_h_l, _mt_h_r = st.columns([0.94, 0.06], gap="small")
+with _mt_h_l:
+    st.subheader("Motif table")
+with _mt_h_r:
+    ui.plot_help_popover(_HELP_MOTIF_TABLE, key="ge_motif_table_help")
+st.caption(
+    "Here is a searchable table of all ATAC motif / TF features, each with FateFormer ranks and per-fate activity and "
+    "differential fields that you can sort, filter by name, or download CSV."
+)
+
 if atac.empty:
     st.warning("No motif-level ATAC features are available in the current results.")
 else:

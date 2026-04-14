@@ -1,4 +1,4 @@
-"""Feature Insights — shift vs attention rank scatter by modality."""
+"""Feature Insights: shift vs attention rank scatter by modality."""
 
 from __future__ import annotations
 
@@ -18,16 +18,24 @@ from streamlit_hf.lib import ui
 
 ui.inject_app_styles()
 
-_HELP_SHIFT_VS_ATT = """
-**What this is:** Each **dot** is **one {mod} feature**. **X** = rank by **attention** (1 = strongest in this modality); **Y** = rank by **latent shift** (1 = strongest).
+# Native Streamlit tooltips (caption help); plain text reads well in the small ? popover.
+_CORR_TABLE_HELP = (
+    "Per-modality correlation between attention rank and latent-shift rank across features in that modality "
+    "(same features as in the scatters below). Pearson r and Spearman rho measure rank agreement, with p-values. "
+    "# features is how many features in that modality were used for the correlation (one rank pair per feature). "
+    "Higher |r| means stronger agreement in how features are ordered: a feature that ranks high on shift (small rank; 1 = strongest) "
+    "tends to sit in a similar place on attention rank, and the same for weaker features, across that modality."
+)
 
-**How to read it:** Points **on the diagonal** rank similarly for both metrics. The **red dashed line** is a **least‑squares trend**—it summarises whether higher attention rank tends to pair with higher shift rank in this modality.
-
-**Takeaway:** Features **far from the trend** are interesting: strong in one lens but not the other (e.g. high attention, lower shift, or the reverse).
-"""
-
-st.title("Feature Insights")
-st.caption("Latent-shift probes, attention rollout, and combined rankings across RNA, ATAC, and Flux.")
+_SCATTER_HELP = (
+    "Each dot is one feature in that column: a gene (RNA), TF motif (ATAC), or reaction (Flux). "
+    "X = attention rank (1 = strongest in that modality); Y = latent shift rank (1 = strongest). "
+    "Ranks on both axes show agreement between methods: near the diagonal means similar ranking; "
+    "the dashed trend line is a least-squares fit. Correlation for each modality is in the table above; "
+    "stronger r means closer alignment of shift- and attention-based importance as fate predictors. "
+    "Point colour is whether that feature sits in the top ~10% by shift rank, attention rank, both, or neither, "
+    "using ranks within that modality only (same scale as the axes)."
+)
 
 df = io.load_df_features()
 
@@ -37,11 +45,13 @@ if df is None:
     )
     st.stop()
 
+st.title(ui.FEATURE_INSIGHTS_TITLE)
+st.caption(ui.FEATURE_INSIGHTS_CAPTION)
 st.subheader("Shift vs attention")
 st.caption(
-    "Each point is **one feature** within its modality. **Attention rank** is on the horizontal axis and **shift rank** "
-    "on the vertical axis (1 = strongest in that modality for that metric). Features near the diagonal rank similarly "
-    "for both; the **red dashed line** is a straight-line trend (least-squares fit) through the cloud."
+    "Here, we explore how much latent-shift and attention-rollout explanations agree on feature importance within each "
+    "modality. A correlation table quantifies rank agreement; scatter plots pair each feature’s two ranks "
+    "(1 = strongest in that modality)."
 )
 corr_rows = []
 for mod in ("RNA", "ATAC", "Flux"):
@@ -61,14 +71,20 @@ for mod in ("RNA", "ATAC", "Flux"):
             }
         )
 if corr_rows:
+    st.caption(
+        "Rank correlation by modality",
+        help=_CORR_TABLE_HELP,
+    )
     st.dataframe(pd.DataFrame(corr_rows), hide_index=True, width="stretch")
+
+st.caption(
+    "Rank scatter by modality",
+    help=_SCATTER_HELP,
+)
 rc1, rc2, rc3 = st.columns(3)
 for col, mod in zip((rc1, rc2, rc3), ("RNA", "ATAC", "Flux")):
     with col:
         sub_m = df[df["modality"] == mod]
-        _, _hp = st.columns([1, 0.28])
-        with _hp:
-            ui.plot_help_popover(_HELP_SHIFT_VS_ATT.format(mod=mod), key=f"t3_scatter_{mod}")
         st.plotly_chart(
             plots.rank_scatter_shift_vs_attention(sub_m, mod),
             width="stretch",

@@ -1,13 +1,19 @@
 """
 FateFormer Explorer: interactive analysis hub.
-Run from repository root: PYTHONPATH=. streamlit run streamlit_hf/app.py
+Run: streamlit run streamlit_hf/app.py (repo root) or streamlit run app.py (from streamlit_hf/).
 """
 
+from __future__ import annotations
+
+import sys
 from pathlib import Path
 
-import streamlit as st
-
 _APP_DIR = Path(__file__).resolve().parent
+_REPO_ROOT = _APP_DIR.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+import streamlit as st
 _ICON_PATH = _APP_DIR / "static" / "app_icon.svg"
 _page_icon_kw = {"page_icon": str(_ICON_PATH)} if _ICON_PATH.is_file() else {}
 
@@ -17,6 +23,11 @@ st.set_page_config(
     initial_sidebar_state="expanded",
     **_page_icon_kw,
 )
+
+# Preload shared UI helpers before page scripts. Streamlit's file watcher can
+# delete watched modules from sys.modules on save; if that happens mid-import,
+# importlib may raise KeyError on the module name. Loading here narrows the race.
+import streamlit_hf.lib.ui as _streamlit_ui_preload  # noqa: F401, E402
 
 _home = str(_APP_DIR / "home.py")
 _p1 = str(_APP_DIR / "pages" / "1_Single_Cell_Explorer.py")

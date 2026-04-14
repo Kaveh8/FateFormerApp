@@ -1,4 +1,4 @@
-"""Feature Insights — full ranked feature table."""
+"""Feature Insights: full ranked feature table."""
 
 from __future__ import annotations
 
@@ -17,15 +17,12 @@ from streamlit_hf.lib import ui
 ui.inject_app_styles()
 
 _FULL_TABLE_HELP = """
-**What this is:** The **full ranked feature list** (RNA genes, ATAC peaks, flux reactions) with **shift**, **attention**, and **joint** rank columns from the interpretability pipeline.
+**What this is:** The **full FateFormer ranked feature list** (RNA genes, ATAC TF motifs, flux reactions) with **shift**, **attention**, and **joint** rank columns from the interpretability pipeline.
 
 **Key columns:** **mean_rank** (lower = stronger overall), **rank_shift** / **rank_att** (global), modality‑internal ranks, and **importance_*** scores. Where available, **pathway** / **module** annotate flux or gene context.
 
 **How to use:** **Sort** or **search** in the table toolbar; **download CSV** for spreadsheets or supplementary tables.
 """
-
-st.title("Feature Insights")
-st.caption("Latent-shift probes, attention rollout, and combined rankings across RNA, ATAC, and Flux.")
 
 df = io.load_df_features()
 
@@ -35,7 +32,13 @@ if df is None:
     )
     st.stop()
 
+st.title(ui.FEATURE_INSIGHTS_TITLE)
+st.caption(ui.FEATURE_INSIGHTS_CAPTION)
 st.subheader("Full table")
+st.caption(
+    "Here is the complete ranked feature table for the run (RNA genes, ATAC motifs, flux reactions): every shift, "
+    "attention, and joint rank and score the pipeline emitted."
+)
 scope = st.radio(
     "Table scope",
     ["All modalities", "Single modality"],
@@ -71,7 +74,7 @@ show_cols = [
     if c in tbl.columns
 ]
 ui.plot_caption_with_help(
-    "All rows for the chosen scope, sorted by **mean rank** (lower = stronger joint priority).",
+    "Full FateFormer list for the chosen scope, sorted by **mean rank** (lower = stronger joint priority).",
     _FULL_TABLE_HELP,
     key="t5_table_help",
 )
