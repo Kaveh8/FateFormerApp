@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import html
 from typing import Any
 
 import numpy as np
@@ -557,6 +558,18 @@ def attention_cohort_view(
     return fig
 
 
+def _pie_hover_feature_lines(names: list[str], *, names_per_line: int = 5) -> str:
+    """Join feature names with commas; start a new hover row every ``names_per_line`` items (HTML ``<br>``)."""
+    if not names:
+        return "—"
+    safe = [html.escape(str(n), quote=False) for n in names]
+    step = max(1, int(names_per_line))
+    lines: list[str] = []
+    for i in range(0, len(safe), step):
+        lines.append(", ".join(safe[i : i + step]))
+    return "<br>".join(lines)
+
+
 def global_rank_triple_panel(
     df_features,
     top_n: int = 20,
@@ -564,6 +577,7 @@ def global_rank_triple_panel(
     *,
     chart_outline: bool = True,
     modality_mix_hole: float = 0.0,
+    modality_mix_hover_feature_list: bool = False,
 ):
     """
     Global top-N by latent-shift and by attention (min-max scaled), plus pie or donut of modality mix
@@ -571,6 +585,8 @@ def global_rank_triple_panel(
 
     Set ``chart_outline=False`` for a flatter look (e.g. home page); Feature Insights keeps outlines by default.
     Set ``modality_mix_hole`` in (0, 1), e.g. ``0.66``, for a donut instead of a full pie (e.g. home page).
+    Set ``modality_mix_hover_feature_list=True`` to show comma-separated feature names per donut slice on hover
+    (same pool as the pie: strongest by mean rank within each modality), wrapped every few names for readability.
     """
     d = df_features.copy()
     for col in ("importance_shift", "importance_att"):
@@ -636,20 +652,37 @@ def global_rank_triple_panel(
     _hole = float(modality_mix_hole) if modality_mix_hole and modality_mix_hole > 0 else 0.0
     # Narrow third subplot: "auto" avoids clipped outside labels on donuts.
     _pie_textpos = "auto"
-    fig.add_trace(
-        go.Pie(
-            labels=pie_labels,
-            values=pie_vals,
-            marker=dict(
-                colors=[MODALITY_PIE_COLOR.get(l, "#64748b") for l in pie_labels],
-                line=pie_line,
-            ),
-            textinfo="label+percent",
-            textfont_size=12,
-            textposition=_pie_textpos,
-            hole=_hole,
-            showlegend=False,
+    _pie_kwargs: dict = dict(
+        labels=pie_labels,
+        values=pie_vals,
+        marker=dict(
+            colors=[MODALITY_PIE_COLOR.get(l, "#64748b") for l in pie_labels],
+            line=pie_line,
         ),
+        textinfo="label+percent",
+        textfont_size=12,
+        textposition=_pie_textpos,
+        hole=_hole,
+        showlegend=False,
+    )
+    if modality_mix_hover_feature_list:
+        _hover_texts: list[str] = []
+        for lab in pie_labels:
+            sub = pie_pool[pie_pool["modality"] == lab]
+            if sub.empty:
+                _hover_texts.append("—")
+            else:
+                sub = sub.sort_values("mean_rank", ascending=True, kind="mergesort")
+                _per_line = 1 if lab == "Flux" else 5
+                _hover_texts.append(
+                    _pie_hover_feature_lines(sub["feature"].astype(str).tolist(), names_per_line=_per_line)
+                )
+        _pie_kwargs["hovertext"] = _hover_texts
+        _pie_kwargs["hovertemplate"] = (
+            "<b>%{label}</b> · %{value} features (%{percent:.1%})<br><br>%{hovertext}<extra></extra>"
+        )
+    fig.add_trace(
+        go.Pie(**_pie_kwargs),
         row=1,
         col=3,
     )

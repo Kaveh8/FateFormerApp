@@ -76,6 +76,43 @@ def _downsample_latent_df(df, max_points: int = 6500, seed: int = 42):
     return df.sample(n=max_points, random_state=seed)
 
 
+def _render_experiment_schematic(width_px: int) -> None:
+    """Show the schematic as inline SVG so each group can use CSS hover and native tooltips."""
+    raw = _EXPERIMENT_SVG.read_text(encoding="utf-8")
+    if raw.lstrip().startswith("<?xml"):
+        raw = raw.split("?>", 1)[1].lstrip()
+    html_doc = f"""<!DOCTYPE html>
+<html><head><meta charset="utf-8"/><style>
+html, body {{ margin: 0; padding: 0; overflow: hidden; background: transparent; }}
+.ff-experiment-svg-wrap {{ width: {width_px}px; max-width: 100%; }}
+.ff-experiment-svg-wrap svg {{ width: 100%; height: auto; display: block; }}
+.ff-experiment-svg-wrap svg g[id] {{
+  cursor: help;
+  transition: filter 0.15s ease;
+}}
+.ff-experiment-svg-wrap svg g[id]:hover {{
+  filter: brightness(1.12) drop-shadow(0 0 1.5px rgba(79, 70, 229, 0.55));
+}}
+/* Microscope: decorative only (no tooltip); ignore pointer so it does not steal hovers. */
+.ff-experiment-svg-wrap svg #microscope,
+.ff-experiment-svg-wrap svg #microscope * {{
+  pointer-events: none;
+}}
+.ff-experiment-svg-wrap svg text {{
+  cursor: help;
+  transition: filter 0.15s ease;
+}}
+.ff-experiment-svg-wrap svg text:hover {{
+  filter: brightness(1.08);
+}}
+</style></head><body>
+<div class="ff-experiment-svg-wrap">
+{raw}
+</div>
+</body></html>"""
+    st.iframe(html_doc, width=width_px, height="content")
+
+
 ui.inject_app_styles()
 ui.inject_home_landing_styles()
 
@@ -94,7 +131,7 @@ with st.container(border=True):
     fig_col, text_col = st.columns([0.42, 0.58], gap="large")
     with fig_col:
         if _EXPERIMENT_SVG.is_file():
-            st.image(str(_EXPERIMENT_SVG), width=_EXPERIMENT_FIGURE_WIDTH_PX)
+            _render_experiment_schematic(_EXPERIMENT_FIGURE_WIDTH_PX)
         else:
             st.caption("Experimental schematic (`static/experiment.svg`) is missing.")
     with text_col:
@@ -219,6 +256,7 @@ if bundle is not None and df_features is not None:
         top_n_pie=_HOME_PIE_TOP_N,
         chart_outline=False,
         modality_mix_hole=0.66,
+        modality_mix_hover_feature_list=True,
     )
     fig_g.update_layout(title_text="", margin=dict(l=36, r=36, t=48, b=100))
     fig_g.update_annotations(font_size=12)
@@ -269,6 +307,7 @@ elif df_features is not None:
         top_n_pie=_HOME_PIE_TOP_N,
         chart_outline=False,
         modality_mix_hole=0.66,
+        modality_mix_hover_feature_list=True,
     )
     fig_g.update_layout(title_text="", margin=dict(l=36, r=36, t=48, b=100))
     st.plotly_chart(fig_g, width="stretch", config={"displayModeBar": False, "displaylogo": False})
