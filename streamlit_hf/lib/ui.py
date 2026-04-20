@@ -201,65 +201,7 @@ section[data-testid="stMain"] .ff-hero .ff-hero-text h1 {
     overflow: hidden !important;
     clip-path: inset(50%) !important;
 }
-/*
- * Home workspace nav cards: each column renders span#ff-nav-slot-N, then the bordered tile.
- * Target the bordered wrapper as the next sibling block after the markdown that contains the span.
- */
-section[data-testid="stMain"] *:has(span#ff-nav-slot-1) + * [data-testid="stVerticalBlockBorderWrapper"],
-section[data-testid="stMain"] *:has(span#ff-nav-slot-1) + * + * [data-testid="stVerticalBlockBorderWrapper"],
-section[data-testid="stMain"] *:has(span#ff-nav-slot-2) + * [data-testid="stVerticalBlockBorderWrapper"],
-section[data-testid="stMain"] *:has(span#ff-nav-slot-2) + * + * [data-testid="stVerticalBlockBorderWrapper"],
-section[data-testid="stMain"] *:has(span#ff-nav-slot-3) + * [data-testid="stVerticalBlockBorderWrapper"],
-section[data-testid="stMain"] *:has(span#ff-nav-slot-3) + * + * [data-testid="stVerticalBlockBorderWrapper"],
-section[data-testid="stMain"] *:has(span#ff-nav-slot-4) + * [data-testid="stVerticalBlockBorderWrapper"],
-section[data-testid="stMain"] *:has(span#ff-nav-slot-4) + * + * [data-testid="stVerticalBlockBorderWrapper"] {
-    border-radius: 14px !important;
-    transition: box-shadow 0.15s ease, border-color 0.15s ease !important;
-}
-section[data-testid="stMain"] *:has(span#ff-nav-slot-1) + * [data-testid="stVerticalBlockBorderWrapper"],
-section[data-testid="stMain"] *:has(span#ff-nav-slot-1) + * + * [data-testid="stVerticalBlockBorderWrapper"] {
-    background: linear-gradient(152deg, #eff6ff 0%, #ffffff 52%, #dbeafe 100%) !important;
-    border: 1px solid rgba(37, 99, 235, 0.38) !important;
-    box-shadow: 0 2px 14px rgba(37, 99, 235, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.92) !important;
-}
-section[data-testid="stMain"] *:has(span#ff-nav-slot-1) + * [data-testid="stVerticalBlockBorderWrapper"]:hover,
-section[data-testid="stMain"] *:has(span#ff-nav-slot-1) + * + * [data-testid="stVerticalBlockBorderWrapper"]:hover {
-    border-color: rgba(29, 78, 216, 0.55) !important;
-    box-shadow: 0 6px 22px rgba(37, 99, 235, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
-}
-section[data-testid="stMain"] *:has(span#ff-nav-slot-2) + * [data-testid="stVerticalBlockBorderWrapper"],
-section[data-testid="stMain"] *:has(span#ff-nav-slot-2) + * + * [data-testid="stVerticalBlockBorderWrapper"] {
-    background: linear-gradient(152deg, #fff7ed 0%, #ffffff 52%, #ffedd5 100%) !important;
-    border: 1px solid rgba(234, 88, 12, 0.35) !important;
-    box-shadow: 0 2px 14px rgba(234, 88, 12, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.92) !important;
-}
-section[data-testid="stMain"] *:has(span#ff-nav-slot-2) + * [data-testid="stVerticalBlockBorderWrapper"]:hover,
-section[data-testid="stMain"] *:has(span#ff-nav-slot-2) + * + * [data-testid="stVerticalBlockBorderWrapper"]:hover {
-    border-color: rgba(194, 65, 12, 0.5) !important;
-    box-shadow: 0 6px 22px rgba(234, 88, 12, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
-}
-section[data-testid="stMain"] *:has(span#ff-nav-slot-3) + * [data-testid="stVerticalBlockBorderWrapper"],
-section[data-testid="stMain"] *:has(span#ff-nav-slot-3) + * + * [data-testid="stVerticalBlockBorderWrapper"] {
-    background: linear-gradient(152deg, #ecfdf5 0%, #ffffff 52%, #d1fae5 100%) !important;
-    border: 1px solid rgba(5, 150, 105, 0.36) !important;
-    box-shadow: 0 2px 14px rgba(5, 150, 105, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.92) !important;
-}
-section[data-testid="stMain"] *:has(span#ff-nav-slot-3) + * [data-testid="stVerticalBlockBorderWrapper"]:hover,
-section[data-testid="stMain"] *:has(span#ff-nav-slot-3) + * + * [data-testid="stVerticalBlockBorderWrapper"]:hover {
-    border-color: rgba(4, 120, 87, 0.52) !important;
-    box-shadow: 0 6px 22px rgba(5, 150, 105, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
-}
-section[data-testid="stMain"] *:has(span#ff-nav-slot-4) + * [data-testid="stVerticalBlockBorderWrapper"],
-section[data-testid="stMain"] *:has(span#ff-nav-slot-4) + * + * [data-testid="stVerticalBlockBorderWrapper"] {
-    background: linear-gradient(152deg, #f5f3ff 0%, #ffffff 52%, #ede9fe 100%) !important;
-    border: 1px solid rgba(124, 58, 237, 0.34) !important;
-    box-shadow: 0 2px 14px rgba(124, 58, 237, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.92) !important;
-}
-section[data-testid="stMain"] *:has(span#ff-nav-slot-4) + * [data-testid="stVerticalBlockBorderWrapper"]:hover,
-section[data-testid="stMain"] *:has(span#ff-nav-slot-4) + * + * [data-testid="stVerticalBlockBorderWrapper"]:hover {
-    border-color: rgba(109, 40, 217, 0.5) !important;
-    box-shadow: 0 6px 22px rgba(124, 58, 237, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
-}
+/* Nav-card colour rules live in home.py so they stay in sync with the per-rerun script. */
 </style>
 """,
         unsafe_allow_html=True,

@@ -273,15 +273,158 @@ else:
 
 # --- Workspace cards (directly under metrics); hidden spans pair with CSS for per-card colours ---
 _NAV_SLOT = '<span id="ff-nav-slot-{}" class="ff-nav-slot-marker" aria-hidden="true"></span>'
+
+# Inject per-card colour rules here (rather than in lib.ui) so Streamlit hot-reload picks up
+# tweaks without needing to reimport the cached lib module.
+st.markdown(
+    """
+<style>
+/*
+ * Home workspace nav cards (Streamlit 1.56+).
+ * Marker row: take it out of normal flow so it cannot reserve vertical space (fixes top gap).
+ * Tighten default block gap, page-link, and caption spacing (fixes title–description gap).
+ */
+section[data-testid="stMain"] div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] span[id^="ff-nav-slot-"]) {
+    position: relative !important;
+    gap: 0 !important;
+    row-gap: 0 !important;
+    margin-bottom: 0 !important;
+    padding: 0.5rem 0.75rem 0.5rem !important;
+    border-radius: 14px !important;
+    transition: box-shadow 0.18s ease, border-color 0.18s ease, transform 0.15s ease !important;
+}
+section[data-testid="stMain"] div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] span[id^="ff-nav-slot-"]) > div[data-testid="stElementContainer"]:has(span[id^="ff-nav-slot-"]) {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    pointer-events: none !important;
+    z-index: 0 !important;
+}
+section[data-testid="stMain"] div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] span[id^="ff-nav-slot-"]) > div[data-testid="stElementContainer"]:has(span[id^="ff-nav-slot-"]) div[data-testid="stMarkdownContainer"],
+section[data-testid="stMain"] div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] span[id^="ff-nav-slot-"]) > div[data-testid="stElementContainer"]:has(span[id^="ff-nav-slot-"]) div[data-testid="stMarkdownContainer"] p {
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+    line-height: 0 !important;
+}
+section[data-testid="stMain"] div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] span[id^="ff-nav-slot-"]) > div[data-testid="stElementContainer"]:has([data-testid="stPageLink"]) {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+}
+section[data-testid="stMain"] div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] span[id^="ff-nav-slot-"]) [data-testid="stPageLink"] {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+}
+section[data-testid="stMain"] div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] span[id^="ff-nav-slot-"]) [data-testid="stCaptionContainer"] {
+    margin-top: 0.28rem !important;
+    margin-bottom: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    /* Subtitle flush with icon / link row (starts under the icon, not under the title text) */
+    padding-left: 0 !important;
+    box-sizing: border-box !important;
+}
+section[data-testid="stMain"] div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] span[id^="ff-nav-slot-"]) [data-testid="stCaptionContainer"] div[data-testid="stMarkdownContainer"] {
+    padding-left: 0 !important;
+    margin-left: 0 !important;
+}
+section[data-testid="stMain"] div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] span[id^="ff-nav-slot-"]) > div[data-testid="stElementContainer"]:has([data-testid="stCaptionContainer"]) {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+}
+section[data-testid="stMain"] div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] span[id^="ff-nav-slot-"]) [data-testid="stCaptionContainer"] p {
+    margin-bottom: 0 !important;
+}
+/* Row of four columns: drop default block margin below the nav cards */
+section[data-testid="stMain"] div[data-testid="stHorizontalBlock"]:has(span#ff-nav-slot-1):has(span#ff-nav-slot-4) {
+    margin-bottom: 0 !important;
+}
+/* Each column’s outer vertical block often keeps trailing margin */
+section[data-testid="stMain"] div[data-testid="stHorizontalBlock"]:has(span#ff-nav-slot-1):has(span#ff-nav-slot-4) > div[data-testid="stVerticalBlock"] {
+    margin-bottom: 0 !important;
+}
+/* Fine dot lattice on a flat tinted base (no banded multi-stop gradients) */
+section[data-testid="stMain"] div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] span#ff-nav-slot-1) {
+    background-color: #f1f3fa !important;
+    background-image: radial-gradient(rgba(67, 56, 202, 0.07) 0.9px, transparent 1px) !important;
+    background-size: 11px 11px !important;
+    border: 1px solid rgba(67, 56, 202, 0.34) !important;
+    box-shadow: 0 2px 16px rgba(49, 46, 129, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.88) !important;
+}
+section[data-testid="stMain"] div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] span#ff-nav-slot-1):hover {
+    border-color: rgba(67, 56, 202, 0.55) !important;
+    box-shadow: 0 8px 26px rgba(49, 46, 129, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.98) !important;
+    transform: translateY(-1px) !important;
+}
+section[data-testid="stMain"] div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] span#ff-nav-slot-2) {
+    background-color: #faf6f1 !important;
+    background-image: radial-gradient(rgba(180, 83, 9, 0.065) 0.9px, transparent 1px) !important;
+    background-size: 11px 11px !important;
+    border: 1px solid rgba(180, 83, 9, 0.3) !important;
+    box-shadow: 0 2px 16px rgba(154, 52, 18, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.88) !important;
+}
+section[data-testid="stMain"] div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] span#ff-nav-slot-2):hover {
+    border-color: rgba(154, 52, 18, 0.5) !important;
+    box-shadow: 0 8px 26px rgba(154, 52, 18, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.98) !important;
+    transform: translateY(-1px) !important;
+}
+section[data-testid="stMain"] div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] span#ff-nav-slot-3) {
+    background-color: #f0f7f6 !important;
+    background-image: radial-gradient(rgba(15, 118, 110, 0.068) 0.9px, transparent 1px) !important;
+    background-size: 11px 11px !important;
+    border: 1px solid rgba(15, 118, 110, 0.32) !important;
+    box-shadow: 0 2px 16px rgba(15, 118, 110, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.88) !important;
+}
+section[data-testid="stMain"] div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] span#ff-nav-slot-3):hover {
+    border-color: rgba(15, 118, 110, 0.52) !important;
+    box-shadow: 0 8px 26px rgba(15, 118, 110, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.98) !important;
+    transform: translateY(-1px) !important;
+}
+section[data-testid="stMain"] div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] span#ff-nav-slot-4) {
+    background-color: #f4f2f9 !important;
+    background-image: radial-gradient(rgba(109, 40, 217, 0.065) 0.9px, transparent 1px) !important;
+    background-size: 11px 11px !important;
+    border: 1px solid rgba(109, 40, 217, 0.3) !important;
+    box-shadow: 0 2px 16px rgba(91, 33, 182, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.88) !important;
+}
+section[data-testid="stMain"] div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] span#ff-nav-slot-4):hover {
+    border-color: rgba(91, 33, 182, 0.5) !important;
+    box-shadow: 0 8px 26px rgba(91, 33, 182, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.98) !important;
+    transform: translateY(-1px) !important;
+}
+section[data-testid="stMain"] div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] span#ff-nav-slot-1) [data-testid="stIconMaterial"] {
+    color: #4338ca !important;
+}
+section[data-testid="stMain"] div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] span#ff-nav-slot-2) [data-testid="stIconMaterial"] {
+    color: #b45309 !important;
+}
+section[data-testid="stMain"] div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] span#ff-nav-slot-3) [data-testid="stIconMaterial"] {
+    color: #0f766e !important;
+}
+section[data-testid="stMain"] div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] span#ff-nav-slot-4) [data-testid="stIconMaterial"] {
+    color: #6d28d9 !important;
+}
+</style>
+""",
+    unsafe_allow_html=True,
+)
 c1, c2, c3, c4 = st.columns(4, gap="small")
 with c1:
-    st.markdown(_NAV_SLOT.format(1), unsafe_allow_html=True)
     with st.container(border=True):
+        st.markdown(_NAV_SLOT.format(1), unsafe_allow_html=True)
         st.page_link("pages/1_Single_Cell_Explorer.py", label="Single-Cell Explorer", icon=":material/scatter_plot:")
         st.caption("UMAP, filters, and per-cell inspection: fate, prediction, fold, batch, modalities.")
 with c2:
-    st.markdown(_NAV_SLOT.format(2), unsafe_allow_html=True)
     with st.container(border=True):
+        st.markdown(_NAV_SLOT.format(2), unsafe_allow_html=True)
         st.page_link(
             "pages/feature_insights/1_Global_overview.py",
             label="Feature Insights",
@@ -289,13 +432,13 @@ with c2:
         )
         st.caption("Shift probes, attention rollout, cohort views, and full multimodal tables.")
 with c3:
-    st.markdown(_NAV_SLOT.format(3), unsafe_allow_html=True)
     with st.container(border=True):
+        st.markdown(_NAV_SLOT.format(3), unsafe_allow_html=True)
         st.page_link("pages/flux_analysis/5_Interactive_map.py", label="Flux Analysis", icon=":material/account_tree:")
         st.caption("Reaction pathways, differential flux, rankings, and model metadata.")
 with c4:
-    st.markdown(_NAV_SLOT.format(4), unsafe_allow_html=True)
     with st.container(border=True):
+        st.markdown(_NAV_SLOT.format(4), unsafe_allow_html=True)
         st.page_link(
             "pages/gene_expression/1_Pathway_enrichment.py",
             label="Gene Expression & TF Activity",
