@@ -211,8 +211,8 @@ def latent_scatter(
         )
     elif not title:
         fig.update_layout(title=None)
-    fig.update_xaxes(showticklabels=False, showgrid=True, gridcolor="rgba(0,0,0,0.06)", zeroline=False)
-    fig.update_yaxes(showticklabels=False, showgrid=True, gridcolor="rgba(0,0,0,0.06)", zeroline=False)
+    fig.update_xaxes(showticklabels=False, showgrid=False, zeroline=False)
+    fig.update_yaxes(showticklabels=False, showgrid=False, zeroline=False)
     return fig
 
 

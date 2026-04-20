@@ -55,7 +55,11 @@ _APP_SUBTITLE = (
 )
 
 _EXPERIMENTAL_SYSTEM_MD = f"""
-Mouse embryonic fibroblasts (**MEFs**) were reprogrammed toward induced endoderm progenitors (**iEPs**) **in vitro** through *Foxa1* and *HNF4A* induction. This process produces **mixed outcomes**: some cells successfully reach the **iEP fate**, whereas others diverge into **off-target** trajectories and stall in **dead-end states**. Using [**CellTag-Multi**]({_CELLTAG_MULTI_ARTICLE_URL}) clonal barcoding, **early cells** could be linked to their **later fate**, which made it possible to ask a central biological question: which programs in **early-state cells**, coordinated **across transcriptional, chromatin, and metabolic layers**, drive successful reprogramming, which ones push cells toward off-target states, and which of these mechanisms could be targeted to improve reprogramming efficiency?
+Mouse embryonic fibroblasts (**MEFs**) were reprogrammed toward induced endoderm progenitors (**iEPs**) **in vitro** through *Foxa1* and *HNF4A* induction.
+
+This process produces **mixed outcomes**: some cells successfully reach the **iEP fate**, whereas others diverge into **off-target** trajectories and stall in **dead-end states**.
+
+Using [**CellTag-Multi**]({_CELLTAG_MULTI_ARTICLE_URL}) clonal barcoding, **early cells** could be linked to their **later fate**, which made it possible to ask a central biological question: which programs in **early-state cells**, coordinated **across transcriptional, chromatin, and metabolic layers**, drive successful reprogramming, which ones push cells toward off-target states, and which of these mechanisms could be targeted to improve reprogramming efficiency?
 """
 
 _BIOLOGY_CONTEXT_MARKDOWN = f"""
@@ -83,8 +87,14 @@ def _render_experiment_schematic(width_px: int) -> None:
         raw = raw.split("?>", 1)[1].lstrip()
     html_doc = f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8"/><style>
-html, body {{ margin: 0; padding: 0; overflow: hidden; background: transparent; }}
-.ff-experiment-svg-wrap {{ width: {width_px}px; max-width: 100%; }}
+html, body {{
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  overflow: visible;
+  box-sizing: border-box;
+}}
+.ff-experiment-svg-wrap {{ width: {width_px}px; max-width: 100%; overflow: visible; }}
 .ff-experiment-svg-wrap svg {{ width: 100%; height: auto; display: block; }}
 .ff-experiment-svg-wrap svg g[id] {{
   cursor: help;
@@ -105,16 +115,98 @@ html, body {{ margin: 0; padding: 0; overflow: hidden; background: transparent; 
 .ff-experiment-svg-wrap svg text:hover {{
   filter: brightness(1.08);
 }}
+#ff-svgtip {{
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 2147483647;
+  display: none;
+  max-width: min(22rem, calc(100vw - 20px));
+  padding: 10px 14px;
+  font-size: 15px;
+  line-height: 1.5;
+  font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+  color: #f1f5f9;
+  background: #0f172a;
+  border-radius: 8px;
+  box-shadow: 0 4px 18px rgba(0,0,0,.25);
+  pointer-events: none;
+}}
 </style></head><body>
 <div class="ff-experiment-svg-wrap">
 {raw}
 </div>
+<script>
+(function () {{
+  const tip = document.createElement("div");
+  tip.id = "ff-svgtip";
+  document.body.appendChild(tip);
+  const OFFSET = 14;
+  const PAD = 10;
+  function placeTip(e) {{
+    if (tip.style.display !== "block") return;
+    tip.style.visibility = "hidden";
+    tip.style.left = "0";
+    tip.style.top = "0";
+    const w = tip.offsetWidth;
+    const h = tip.offsetHeight;
+    tip.style.visibility = "visible";
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const O = OFFSET;
+    const P = PAD;
+    let x = e.clientX + O;
+    let y = e.clientY + O;
+    if (y + h + P > vh) y = e.clientY - h - O;
+    if (x + w + P > vw) x = e.clientX - w - O;
+    if (x + w + P > vw) x = Math.max(P, vw - w - P);
+    if (y + h + P > vh) y = Math.max(P, vh - h - P);
+    if (x < P) x = P;
+    if (y < P) y = P;
+    tip.style.left = x + "px";
+    tip.style.top = y + "px";
+  }}
+  function bind(el) {{
+    if (el.closest && el.closest("#microscope")) return;
+    const t = el.querySelector(":scope > title");
+    if (!t || !t.textContent.trim()) return;
+    const txt = t.textContent.trim();
+    t.remove();
+    el.addEventListener("mouseenter", function (e) {{
+      tip.textContent = txt;
+      tip.style.display = "block";
+      requestAnimationFrame(function () {{ placeTip(e); }});
+    }});
+    el.addEventListener("mousemove", function (e) {{ placeTip(e); }});
+    el.addEventListener("mouseleave", function () {{
+      tip.style.display = "none";
+    }});
+  }}
+  document.querySelectorAll(".ff-experiment-svg-wrap svg g[id]").forEach(bind);
+  document.querySelectorAll(".ff-experiment-svg-wrap svg text").forEach(bind);
+}})();
+</script>
 </body></html>"""
     st.iframe(html_doc, width=width_px, height="content")
 
 
 ui.inject_app_styles()
 ui.inject_home_landing_styles()
+
+# Bordered Streamlit blocks use overflow that clips iframe tooltips; allow paint past the card edge.
+st.markdown(
+    """
+<style>
+section[data-testid="stMain"] div[data-testid="stVerticalBlockBorderWrapper"]:has(iframe) {
+  overflow: visible !important;
+}
+section[data-testid="stMain"] div[data-testid="stVerticalBlockBorderWrapper"]:has(iframe) > div {
+  overflow: visible !important;
+}
+</style>
+""",
+    unsafe_allow_html=True,
+)
 
 st.markdown(
     f"""<div class="ff-hero"><div class="ff-hero-inner"><div class="ff-hero-text">
@@ -128,7 +220,11 @@ st.markdown(
 )
 
 with st.container(border=True):
-    fig_col, text_col = st.columns([0.42, 0.58], gap="large")
+    # Wider text column → fewer wrapped lines; tighter gap; center figure vs text when heights differ.
+    try:
+        fig_col, text_col = st.columns([0.33, 0.67], gap="medium", vertical_alignment="center")
+    except TypeError:
+        fig_col, text_col = st.columns([0.33, 0.67], gap="medium")
     with fig_col:
         if _EXPERIMENT_SVG.is_file():
             _render_experiment_schematic(_EXPERIMENT_FIGURE_WIDTH_PX)
