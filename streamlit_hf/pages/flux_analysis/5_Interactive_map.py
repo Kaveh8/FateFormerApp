@@ -268,7 +268,34 @@ function attachDiagramHoverOnly(){
   });
 }
 
-function posT(e){ tt.style.left=(e.clientX+12)+'px'; tt.style.top=(e.clientY-8)+'px'; }
+function posT(e){
+  if(!tt||!e) return;
+  const OFFSET=12;
+  const PAD=8;
+  tt.style.visibility='hidden';
+  tt.style.left='0px';
+  tt.style.top='0px';
+  const w=tt.offsetWidth;
+  const h=tt.offsetHeight;
+  tt.style.visibility='visible';
+
+  const inMap=Boolean(e.target && e.target.closest && e.target.closest('#map-container'));
+  const bounds=inMap && ctr
+    ? ctr.getBoundingClientRect()
+    : { left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight };
+
+  let x=e.clientX+OFFSET;
+  let y=e.clientY+OFFSET;
+  if(y+h+PAD>bounds.bottom) y=e.clientY-h-OFFSET;
+  if(x+w+PAD>bounds.right) x=e.clientX-w-OFFSET;
+  if(x+w+PAD>bounds.right) x=Math.max(bounds.left+PAD, bounds.right-w-PAD);
+  if(y+h+PAD>bounds.bottom) y=Math.max(bounds.top+PAD, bounds.bottom-h-PAD);
+  if(x<bounds.left+PAD) x=bounds.left+PAD;
+  if(y<bounds.top+PAD) y=bounds.top+PAD;
+
+  tt.style.left=x+'px';
+  tt.style.top=y+'px';
+}
 
 function setupPZ(){
   ctr.addEventListener('mousedown',e=>{
