@@ -203,6 +203,21 @@ section[data-testid="stMain"] div[data-testid="stVerticalBlockBorderWrapper"]:ha
 section[data-testid="stMain"] div[data-testid="stVerticalBlockBorderWrapper"]:has(iframe) > div {
   overflow: visible !important;
 }
+/* Home overview UMAP: lift only this chart slightly for better visual top alignment with left text. */
+section[data-testid="stMain"] div[data-testid="stElementContainer"]:has(span.ff-home-umap-lift-marker) {
+    margin-bottom: 0 !important;
+}
+section[data-testid="stMain"] div[data-testid="stElementContainer"]:has(span.ff-home-umap-lift-marker) + div[data-testid="stElementContainer"]:has([data-testid="stPlotlyChart"]) {
+    margin-top: -16px !important;
+}
+/* Reduce whitespace between nav cards and the Overview/UMAP section. */
+section[data-testid="stMain"] div[data-testid="stElementContainer"]:has(.ff-section-label) {
+    margin-top: -0.55rem !important;
+    margin-bottom: 0.1rem !important;
+}
+section[data-testid="stMain"] div[data-testid="stElementContainer"]:has(.ff-section-label) + div[data-testid="stHorizontalBlock"] {
+    margin-top: -0.35rem !important;
+}
 /*
  * Home metrics strip (four st.metric above nav cards): centre each metric in its column.
  * Scope with :not(:has([id^="ff-nav-slot-"])) so the nav-card row (which also uses 4 columns) is excluded.
@@ -509,6 +524,7 @@ if bundle is not None and df_features is not None:
                 subtitle=_UMAP_HOME_SUBTITLE,
             )
             fig_u.update_layout(margin=dict(l=20, r=8, t=92, b=20), title_font_size=15)
+            st.markdown('<span class="ff-home-umap-lift-marker"></span>', unsafe_allow_html=True)
             st.plotly_chart(
                 fig_u,
                 width="stretch",
@@ -564,6 +580,7 @@ elif bundle is not None:
                 subtitle=_UMAP_HOME_SUBTITLE_RANK_MISSING,
             )
             fig_u.update_layout(margin=dict(l=24, r=12, t=92, b=24), title_font_size=15)
+            st.markdown('<span class="ff-home-umap-lift-marker"></span>', unsafe_allow_html=True)
             st.plotly_chart(fig_u, width="stretch", config={"displayModeBar": True, "displaylogo": False})
         with _umap_help_col2:
             ui.plot_help_popover(
