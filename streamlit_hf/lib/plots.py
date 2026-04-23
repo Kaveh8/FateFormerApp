@@ -129,7 +129,7 @@ def latent_scatter(
         "modality_label": "Available modalities",
         "dataset_idx": "Dataset index",
         "batch_no": "Batch",
-        "fold": "CV fold",
+        "fold": "Cross Validation fold",
     }
     labels_map = {c: _disp[c] for c in _disp if c in d.columns}
 

@@ -27,9 +27,9 @@ _UMAP_EXPLORER_SUBTITLE = "Hover points for details · drag on the plot to selec
 _UMAP_EXPLORER_HELP = f"""
 **What this is:** The same **2‑D UMAP** as on **Home**: validation **single cells** in **FateFormer**’s **latent space** (**context vector token representation**), summarised across **5-fold cross-validation** (**2,110** cells before filters). Here you **choose what to colour** and **filter** the cloud.
 
-**How to read it:** Each point is one cell. **Colour** comes from **Colour by**: e.g. [**CellTag-Multi**]({_CELLTAG_MULTI_ARTICLE_URL}) **label**, **predicted fate**, **prediction correct / wrong**, **CV fold**, **batch**, or **dominant fate %**. **Axes are unitless** (UMAP preserves *local* neighbourhoods only). **Hover** a point for per-cell fields.
+**How to read it:** Each point is one cell. **Colour** comes from **Colour by**: e.g. [**CellTag-Multi**]({_CELLTAG_MULTI_ARTICLE_URL}) **label**, **predicted fate**, **prediction correct / wrong**, **Cross Validation fold**, **batch**, or **dominant fate %**. **Axes are unitless** (UMAP preserves *local* neighbourhoods only). **Hover** a point for per-cell fields.
 
-**Using this page:** Use **Filters** to keep modality combinations, restrict **prediction outcome** (all / correct only / wrong only), choose **CV folds**, and set a **dominant fate %** range. In the plot **toolbar** (top right), pick **Box select** or **Lasso select**, then **drag** on the canvas; the app **reruns** and the **Selected points** table fills with those rows. To inspect **one** cell without a selection, scroll to **Inspect by dataset index**.
+**Using this page:** Use **Filters** to keep modality combinations, restrict **prediction outcome** (all / correct only / wrong only), choose **Cross Validation folds**, and set a **dominant fate %** range. In the plot **toolbar** (top right), pick **Box select** or **Lasso select**, then **drag** on the canvas; the app **reruns** and the **Selected points** table fills with those rows. To inspect **one** cell without a selection, scroll to **Inspect by dataset index**.
 """
 
 st.title("Single-Cell Explorer")
@@ -64,7 +64,7 @@ with left:
             "label": "CellTag-Multi label",
             "predicted_class": "Predicted fate",
             "correct": "Prediction correct",
-            "fold": "CV fold",
+            "fold": "Cross Validation fold",
             "batch_no": "Batch",
             "pct": "Dominant fate %",
         }[x],
@@ -87,7 +87,7 @@ with left:
     )
     folds = sorted(df["fold"].unique())
     fold_pick = st.multiselect(
-        "CV folds",
+        "Cross Validation folds",
         folds,
         default=folds,
         help="Validation cross-validation folds to include (each fold’s held-out cells).",

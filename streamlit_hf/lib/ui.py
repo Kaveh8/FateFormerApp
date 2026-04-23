@@ -178,7 +178,7 @@ section[data-testid="stMain"] .ff-hero .ff-hero-text h1 {
 }
 .ff-hero-sub {
     margin: 0;
-    max-width: 52rem;
+    max-width: 100%;
     font-size: 0.98rem;
     line-height: 1.55;
     color: rgba(226, 232, 240, 0.95);

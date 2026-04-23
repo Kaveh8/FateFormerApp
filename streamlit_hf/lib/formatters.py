@@ -35,7 +35,7 @@ LATENT_TABLE_RENAME: dict[str, str] = {
     "modality_label": "Available modalities",
     "dataset_idx": "Dataset index",
     "batch_no": "Batch",
-    "fold": "CV fold",
+    "fold": "Cross Validation fold",
     "clone_id": "Clone ID",
     "clone_size": "Clone size",
     "cell_type": "Cell type",

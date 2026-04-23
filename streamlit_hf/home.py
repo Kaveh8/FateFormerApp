@@ -91,7 +91,7 @@ html, body {{
   margin: 0;
   padding: 0;
   background: transparent;
-  overflow: visible;
+  overflow: hidden;
   box-sizing: border-box;
 }}
 .ff-experiment-svg-wrap {{ width: {width_px}px; max-width: 100%; overflow: visible; }}
@@ -399,11 +399,11 @@ st.markdown(
 )
 
 with st.container(border=True):
-    # Wider text column → fewer wrapped lines; tighter gap; center figure vs text when heights differ.
+    # Slightly narrower text column; keep balanced spacing and centered vertical alignment.
     try:
-        fig_col, text_col = st.columns([0.33, 0.67], gap="medium", vertical_alignment="center")
+        fig_col, text_col = st.columns([0.38, 0.62], gap="medium", vertical_alignment="center")
     except TypeError:
-        fig_col, text_col = st.columns([0.33, 0.67], gap="medium")
+        fig_col, text_col = st.columns([0.38, 0.62], gap="medium")
     with fig_col:
         if _EXPERIMENT_SVG.is_file():
             _render_experiment_schematic(_EXPERIMENT_FIGURE_WIDTH_PX)
